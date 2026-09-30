@@ -1,0 +1,2660 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Simulado de Cirurgia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#030504;
+  --surface:#0a0e0b;
+  --surface-2:#0f1511;
+  --surface-3:#152019;
+  --line:rgba(74,222,128,.11);
+  --line-2:rgba(74,222,128,.22);
+  --green:#166534;
+  --green-2:#15803d;
+  --accent:#4ade80;
+  --accent-dim:rgba(74,222,128,.13);
+  --text:#e5efe8;
+  --text-2:#b6c6bc;
+  --muted:#7d9186;
+  --ok:#3fb97c;
+  --ok-bg:rgba(63,185,124,.10);
+  --err:#e2575c;
+  --err-bg:rgba(226,87,92,.09);
+  --sans:'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono:'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --r:10px;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+:root[data-theme="dark"]{ color-scheme:dark; }
+*,*::before,*::after{box-sizing:border-box}
+html{height:100%;scroll-padding-top:calc(env(safe-area-inset-top,0px) + 120px);background:var(--bg)}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.mono{font-family:var(--mono)}
+
+/* ---------- top bar ---------- */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:rgba(3,5,4,.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.topbar-inner{max-width:880px;margin:0 auto;padding:10px 20px;display:flex;align-items:center;gap:8px}
+.counter{font-family:var(--mono);font-size:14px;color:var(--text-2);margin:0 auto 0 8px;white-space:nowrap}
+.counter b{color:var(--accent);font-weight:500}
+.counter .mode{color:var(--muted);font-size:12px;margin-left:8px}
+.tb-btn{background:transparent;border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:13.5px;color:var(--text-2);cursor:pointer;white-space:nowrap;transition:border-color .15s,color .15s,background .15s}
+.tb-btn:hover{border-color:var(--line-2);color:var(--text)}
+.tb-btn.primary{border-color:var(--green-2);background:var(--green);color:#effcf3}
+.tb-btn.primary:hover{background:var(--green-2)}
+.tb-btn[aria-expanded="true"]{border-color:var(--accent);color:var(--accent)}
+.progress{max-width:880px;margin:0 auto;padding:0 20px 10px;display:flex;gap:2px}
+.seg{flex:1;min-width:0;height:5px;border-radius:2px;background:var(--surface-3);border:0;padding:0;cursor:pointer;position:relative}
+.seg.ok{background:var(--ok)}
+.seg.err{background:var(--err)}
+.seg.cur{box-shadow:0 0 0 1.5px var(--accent);background:var(--accent-dim)}
+.seg.cur.ok{background:var(--ok)}
+.seg.cur.err{background:var(--err)}
+.seg::after{content:"";position:absolute;inset:-8px 0}
+
+/* ---------- layout ---------- */
+main{max-width:880px;margin:0 auto;padding:32px 20px 80px}
+.view[hidden]{display:none}
+
+/* ---------- start ---------- */
+.start{min-height:calc(100vh - 160px);display:flex;flex-direction:column;justify-content:center;max-width:620px}
+.start .kicker{font-family:var(--mono);font-size:13px;color:var(--accent);letter-spacing:.02em;margin:0 0 18px;display:flex;align-items:center;gap:10px}
+.start .kicker::before{content:"";width:22px;height:1px;background:var(--accent)}
+.start h1{font-weight:300;font-size:clamp(34px,6.4vw,56px);line-height:1.05;letter-spacing:-.02em;margin:0 0 20px}
+.start p{color:var(--text-2);margin:0 0 30px;max-width:52ch}
+.bank[hidden]{display:none}
+.bank{margin-top:22px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;font-size:13.5px}
+.bank-label{color:var(--muted)}
+.link{background:none;border:0;padding:0;color:var(--accent);cursor:pointer;font-size:13.5px;text-decoration:underline;text-decoration-color:rgba(74,222,128,.35);text-underline-offset:3px}
+.link:hover{text-decoration-color:var(--accent)}
+.figure img{display:block;max-width:100%;height:auto;border-radius:6px}
+.start p.author{font-size:15px;color:var(--accent);margin:-6px 0 14px}
+.stats{display:flex;gap:32px;margin:0 0 36px;padding:18px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.stat .n{font-family:var(--mono);font-size:26px;color:var(--text);line-height:1.2}
+.stat .l{font-size:13px;color:var(--muted)}
+.actions{display:flex;flex-wrap:wrap;gap:10px}
+.btn{border:1px solid var(--line-2);background:transparent;color:var(--text);border-radius:var(--r);padding:12px 22px;font-size:15px;font-weight:500;cursor:pointer;transition:background .15s,border-color .15s}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--green);border-color:var(--green-2);color:#effcf3}
+.btn.primary:hover{background:var(--green-2)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.keys{margin-top:34px;display:flex;flex-wrap:wrap;gap:18px;font-size:13px;color:var(--muted)}
+kbd{font-family:var(--mono);font-size:11.5px;border:1px solid var(--line-2);border-bottom-width:2px;border-radius:5px;padding:1px 6px;color:var(--text-2);background:var(--surface)}
+
+/* ---------- question ---------- */
+.q-meta{display:flex;align-items:baseline;gap:14px;margin:0 0 18px;flex-wrap:wrap}
+.q-num{font-family:var(--mono);font-size:13px;color:var(--accent);border:1px solid var(--accent-dim);background:var(--accent-dim);border-radius:6px;padding:2px 8px}
+.q-tema{font-size:13.5px;color:var(--muted)}
+.q-case{font-size:17px;line-height:1.72;color:var(--text);max-width:70ch;margin:0 0 20px}
+.q-ask{font-size:17px;font-weight:500;color:#f2fbf5;max-width:70ch;margin:0 0 22px}
+.figure{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin:0 0 22px;overflow-x:auto}
+.figure svg{display:block;min-width:540px;width:100%;height:auto;max-width:680px}
+.figure figcaption{font-size:12.5px;color:var(--muted);margin-top:8px}
+.g-line{stroke:var(--text-2);stroke-width:1.5;fill:none}
+.g-rel{stroke:var(--accent);stroke-width:1.4;fill:none}
+.g-sym{fill:var(--surface-2);stroke:var(--text);stroke-width:1.5}
+.g-idx{fill:none;stroke:var(--accent);stroke-width:1.3}
+.g-txt{fill:var(--text);font:500 12.5px var(--sans)}
+.g-sub{fill:var(--muted);font:400 11.5px var(--sans)}
+.g-leg{fill:var(--text-2);font:400 12px var(--sans)}
+
+.opts{display:flex;flex-direction:column;gap:10px;margin:0 0 26px}
+.opt{display:flex;gap:14px;align-items:flex-start;text-align:left;width:100%;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;cursor:pointer;font-size:15.5px;line-height:1.55;color:var(--text);transition:border-color .15s,background .15s}
+.opt:hover:not(:disabled){border-color:var(--green-2);background:var(--surface-2)}
+.opt:disabled{cursor:default}
+.opt .key{font-family:var(--mono);font-size:13px;flex:0 0 28px;height:28px;display:grid;place-items:center;border:1px solid var(--line-2);border-radius:7px;color:var(--text-2);margin-top:-1px}
+.opt.dim{opacity:.5}
+.opt.right{border-color:var(--ok);background:var(--ok-bg);opacity:1}
+.opt.right .key{border-color:var(--ok);background:var(--ok);color:#04130b}
+.opt.wrong{border-color:var(--err);background:var(--err-bg);opacity:1}
+.opt.wrong .key{border-color:var(--err);background:var(--err);color:#1a0405}
+
+.fb{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden;margin:0 0 28px}
+.fb-head{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line);font-weight:500}
+.fb-head .dot{width:9px;height:9px;border-radius:50%}
+.fb.is-ok .fb-head{color:var(--ok)} .fb.is-ok .dot{background:var(--ok)}
+.fb.is-err .fb-head{color:var(--err)} .fb.is-err .dot{background:var(--err)}
+.fb-head .gab{margin-left:auto;font-family:var(--mono);font-size:13px;color:var(--text-2);font-weight:400}
+.fb-body{padding:6px 18px 16px}
+.fb-sec{padding:12px 0;border-bottom:1px solid var(--line)}
+.fb-sec:last-child{border-bottom:0}
+.fb-sec h3{font-size:13px;font-weight:500;color:var(--accent);margin:0 0 4px}
+.fb-sec p{margin:0;color:var(--text-2);font-size:15px;max-width:72ch}
+.fb-steps{margin:6px 0 0;padding:0;list-style:none;counter-reset:st;display:flex;flex-direction:column;gap:7px}
+.fb-steps li{counter-increment:st;display:flex;gap:10px;font-size:14.5px;color:var(--text-2);line-height:1.5}
+.fb-steps li::before{content:counter(st,decimal-leading-zero);font-family:var(--mono);font-size:12px;color:var(--accent);flex:0 0 22px;padding-top:2px}
+.fb-alts{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.fb-alts li{display:flex;gap:10px;font-size:14.5px;color:var(--text-2);line-height:1.5}
+.fb-alts .k{font-family:var(--mono);color:var(--err);flex:0 0 18px}
+
+.nav{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.nav .spacer{flex:1}
+.nav .hint{font-size:12.5px;color:var(--muted)}
+
+/* ---------- result ---------- */
+.result h2{font-weight:300;font-size:28px;margin:0 0 26px;letter-spacing:-.01em}
+.score{display:flex;align-items:flex-end;gap:26px;flex-wrap:wrap;padding:28px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:0 0 28px}
+.pct{font-family:var(--mono);font-size:clamp(64px,14vw,104px);line-height:.9;font-weight:500;color:var(--accent);letter-spacing:-.04em}
+.pct small{font-size:.4em;color:var(--muted);margin-left:4px}
+.breakdown{display:flex;gap:28px;padding-bottom:6px}
+.breakdown .n{font-family:var(--mono);font-size:24px}
+.breakdown .l{font-size:13px;color:var(--muted)}
+.n.ok{color:var(--ok)} .n.err{color:var(--err)} .n.blank{color:var(--text-2)}
+.result .summary{color:var(--text-2);margin:0 0 26px;max-width:60ch}
+.topics{margin:34px 0 0;border-top:1px solid var(--line);padding-top:24px;max-width:720px}
+.topics h3{font-size:16px;font-weight:500;margin:0 0 6px}
+.topics-tip{color:var(--text-2);font-size:14.5px;margin:0 0 16px}
+.topics ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
+.topics li{display:grid;grid-template-columns:minmax(0,1fr) 120px 110px;align-items:center;gap:14px;font-size:14.5px}
+.topics .tn{color:var(--text)}
+.topics .tbar{height:6px;border-radius:3px;background:var(--surface-3);overflow:hidden}
+.topics .tbar i{display:block;height:100%;border-radius:3px}
+.topics li.good .tbar i{background:var(--ok)} .topics li.mid .tbar i{background:var(--accent)} .topics li.bad .tbar i{background:var(--err)}
+.topics .tv{font-family:var(--mono);font-size:12.5px;color:var(--text-2);text-align:right}
+.topics li.bad .tv{color:var(--err)}
+@media (max-width:640px){.topics li{grid-template-columns:minmax(0,1fr) 92px;row-gap:4px}.topics .tbar{grid-column:1/-1;grid-row:2}}
+.result-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:5px;margin:30px 0 0;max-width:620px}
+
+/* ---------- map ---------- */
+.map{position:absolute;right:20px;top:calc(100% + 6px);width:min(420px,calc(100vw - 32px));max-height:min(70vh,560px);overflow-y:auto;background:var(--surface);border:1px solid var(--line-2);border-radius:var(--r);padding:14px;box-shadow:0 18px 40px rgba(0,0,0,.55)}
+.map[hidden]{display:none}
+.map-wrap{max-width:880px;margin:0 auto;position:relative}
+.filters{display:flex;gap:6px;margin:0 0 12px}
+.chip{border:1px solid var(--line);background:transparent;border-radius:999px;padding:4px 11px;font-size:12.5px;color:var(--text-2);cursor:pointer}
+.chip[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.cells{display:grid;grid-template-columns:repeat(10,1fr);gap:5px}
+.cell{font-family:var(--mono);font-size:12px;height:32px;padding:0;border-radius:7px;border:1px solid var(--line-2);background:var(--surface-2);color:var(--text-2);cursor:pointer}
+.cell.ok{border-color:rgba(63,185,124,.6);color:var(--ok);background:var(--ok-bg)}
+.cell.err{border-color:rgba(226,87,92,.6);color:var(--err);background:var(--err-bg)}
+.cell.cur{outline:1.5px solid var(--accent);outline-offset:1px}
+.map-empty{font-size:13px;color:var(--muted);padding:8px 2px}
+.map-legend{display:flex;gap:14px;margin-top:12px;font-size:12px;color:var(--muted)}
+.map-legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:0}
+
+/* ---------- modal ---------- */
+.modal{position:fixed;inset:0;z-index:50;background:rgba(2,4,3,.72);display:grid;place-items:center;padding:20px}
+.modal[hidden]{display:none}
+.modal-box{width:min(420px,100%);background:var(--surface);border:1px solid var(--line-2);border-radius:12px;padding:22px}
+.modal-box h3{margin:0 0 8px;font-size:17px;font-weight:500}
+.modal-box p{margin:0 0 20px;color:var(--text-2);font-size:15px}
+.modal-box .actions{justify-content:flex-end}
+
+@media (max-width:640px){
+  main{padding:24px 16px 64px}
+  .topbar-inner{padding:8px 12px;gap:6px;flex-wrap:wrap}
+  .progress{padding:0 12px 8px}
+  .tb-btn{padding:5px 9px;font-size:12.5px}
+  .counter{order:-1;flex-basis:100%;margin:0 0 4px 2px}
+  .q-case,.q-ask{font-size:16px}
+  .map{right:16px}
+  .cells{grid-template-columns:repeat(7,1fr)}
+  .stats{gap:22px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="topbar" id="topbar" hidden>
+  <div class="topbar-inner">
+    <button class="tb-btn" id="btnHome" type="button">Início</button>
+    <div class="counter" id="counter" aria-live="polite"></div>
+    <button class="tb-btn" id="btnMap" type="button" aria-expanded="false" aria-controls="map">Mapa</button>
+    <button class="tb-btn" id="btnReset" type="button">Reiniciar</button>
+    <button class="tb-btn primary" id="btnFinish" type="button">Finalizar</button>
+  </div>
+  <div class="progress" id="progress" aria-label="Progresso"></div>
+  <div class="map-wrap">
+    <div class="map" id="map" hidden role="dialog" aria-label="Mapa de questões">
+      <div class="filters" role="group" aria-label="Filtrar questões">
+        <button class="chip" data-f="all" aria-pressed="true" type="button">Todas</button>
+        <button class="chip" data-f="err" aria-pressed="false" type="button">Erradas</button>
+        <button class="chip" data-f="blank" aria-pressed="false" type="button">Em branco</button>
+      </div>
+      <div class="cells" id="cells"></div>
+      <div class="map-legend"><span><i style="background:var(--ok)"></i>Certa</span><span><i style="background:var(--err)"></i>Errada</span><span><i style="background:var(--surface-3);border:1px solid var(--line-2)"></i>Em branco</span></div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="view start" id="vStart">
+    <p class="kicker" id="cArea"></p>
+    <h1 id="cTitulo"></h1>
+    <p class="author" id="cAutor"></p>
+    <p id="cDesc"></p>
+    <div class="stats">
+      <div class="stat"><div class="n" id="sTotal">70</div><div class="l">questões</div></div>
+      <div class="stat"><div class="n" id="sDone">0</div><div class="l">respondidas</div></div>
+      <div class="stat"><div class="n" id="sAlt">4</div><div class="l">alternativas cada</div></div>
+    </div>
+    <div class="actions">
+      <button class="btn primary" id="btnStart" type="button">Iniciar</button>
+      <button class="btn" id="btnFresh" type="button" hidden>Começar do zero</button>
+    </div>
+    <div class="bank" hidden>
+      <span class="bank-label" id="bankLabel"></span>
+      <button class="link" id="btnLoad" type="button">Carregar questões (.json)</button>
+      <button class="link" id="btnModel" type="button">Baixar modelo</button>
+      <button class="link" id="btnDefault" type="button" hidden>Voltar ao banco padrão</button>
+      <input type="file" id="fileInput" accept=".json,application/json" hidden>
+    </div>
+    <div class="keys">
+      <span id="keysAns"><kbd>A</kbd> <kbd>B</kbd> <kbd>C</kbd> <kbd>D</kbd> responder</span>
+      <span><kbd>Enter</kbd> avançar</span>
+      <span><kbd>←</kbd> <kbd>→</kbd> navegar</span>
+    </div>
+  </section>
+
+  <section class="view" id="vQuiz" hidden></section>
+  <section class="view result" id="vResult" hidden></section>
+</main>
+
+<div class="modal" id="modal" hidden>
+  <div class="modal-box" role="alertdialog" aria-modal="true" aria-labelledby="mTitle" aria-describedby="mText">
+    <h3 id="mTitle"></h3>
+    <p id="mText"></p>
+    <div class="actions">
+      <button class="btn" id="mCancel" type="button">Cancelar</button>
+      <button class="btn primary" id="mOk" type="button">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   CONFIGURAÇÃO — edite estes textos para cada matéria
+   ===================================================================== */
+const CONFIG = {
+  area: "Cirurgia",
+  titulo: "Simulado de Cirurgia",
+  autor: "Geraldo Sandoval",
+  descricao: "Casos clínicos de ambiente cirúrgico, abordagem inicial ao queimado, cicatrização e cicatrização patológica.",
+  embaralhar: true
+};
+
+/* =====================================================================
+   BANCO DE QUESTÕES PADRÃO
+   Formato de cada questão:
+   {
+     "assunto":   "Tema usado no relatório final",
+     "caso":      "Enunciado / caso clínico",
+     "pergunta":  "Pergunta final",
+     "opcoes":    ["alt A", "alt B", "alt C", "alt D"],   // 2 a 5 alternativas
+     "correta":   "C",                                    // letra (ou índice 0-4)
+     "pista":     "Pista principal do caso",              // opcional
+     "conceito":  "Conceito testado",                     // opcional
+     "explicacao":"Explicação livre",                     // opcional
+     "erros":     { "A": "erro de A", "B": "...", "D": "..." },  // opcional
+     "figura":    "<svg>...</svg>",                       // opcional (SVG/HTML)
+     "imagem":    "https://... ou data:image/...",        // opcional
+     "legenda":   "Legenda da figura"                     // opcional
+   }
+   Também é possível carregar um arquivo .json pelo botão da tela inicial,
+   sem editar este código: { "config": {...}, "questoes": [ ... ] }
+   ===================================================================== */
+const BANCO_PADRAO = [
+ {
+  "assunto": "Ambiente cirúrgico",
+  "caso": "Às 7h30, a sala 3 está montada para uma artroplastia de quadril: caixas de instrumental abertas sobre a mesa auxiliar e o paciente ainda na recepção do centro cirúrgico. A circulante, de roupa privativa e touca, entra sem máscara para buscar um frasco de soro, alegando que 'a cirurgia ainda não começou', e deixa a porta aberta para facilitar a passagem da maca.",
+  "pergunta": "Qual é a conduta correta nessa sala?",
+  "opcoes": [
+   "Máscara obrigatória já com material estéril aberto, portas fechadas e circulação mínima",
+   "Máscara obrigatória apenas para a equipe paramentada, com portas fechadas e circulação mínima",
+   "Máscara obrigatória apenas após a incisão, com portas abertas até o posicionamento",
+   "Máscara obrigatória apenas após a entrada do paciente, com portas fechadas e circulação mínima"
+  ],
+  "correta": "A",
+  "pista": "Material estéril já aberto, mesmo sem paciente na sala.",
+  "conceito": "Na zona restrita (sala operatória e áreas com material estéril aberto) exigem-se roupa privativa, cobertura completa dos cabelos, máscara quando houver campo ou material estéril aberto, portas fechadas e circulação mínima. A regra prática é entrar com propósito claro e sair levando o que não precisa permanecer.",
+  "raciocinio": [
+   "Classificar a sala: restrita, com material estéril aberto.",
+   "Identificar o gatilho da máscara: material aberto, e não paciente ou incisão.",
+   "Corrigir: máscara, porta fechada e circulação mínima."
+  ],
+  "erros": {
+   "B": "A máscara vale para todos na sala quando há campo ou material estéril aberto.",
+   "C": "O gatilho não é a incisão, e a porta deve permanecer fechada.",
+   "D": "A exigência decorre do material estéril aberto, não da presença do paciente."
+  }
+ },
+ {
+  "assunto": "Ambiente cirúrgico",
+  "caso": "Durante uma tireoidectomia, o residente, já paramentado com avental e luvas estéreis, sai da sala para atender o celular no corredor interno, apoia as mãos no balcão do posto e retorna ao campo cirúrgico em seguida, dizendo que 'não encostou em nada sujo, só no balcão'.",
+  "pergunta": "Qual é a conduta correta antes de ele voltar ao campo?",
+  "opcoes": [
+   "Retornar sem trocas, pois o corredor interno pertence à zona semirrestrita",
+   "Friccionar álcool sobre as luvas e retornar, mantendo o mesmo avental estéril",
+   "Trocar avental e luvas estéreis, pois houve contato com área não estéril",
+   "Trocar apenas as luvas, pois o avental não tocou nenhuma superfície não estéril"
+  ],
+  "correta": "C",
+  "pista": "Paramentado saiu da sala e tocou superfície não estéril.",
+  "conceito": "A barreira estéril (avental, luvas, campos) protege o campo cirúrgico. Na paramentação, as mãos devem ficar à vista, acima da cintura e afastadas de áreas não estéreis. Ao deixar a sala e tocar superfícies não estéreis, a barreira foi rompida e deve ser refeita.",
+  "raciocinio": [
+   "Reconhecer a saída da zona restrita paramentado.",
+   "Identificar o contato com superfície não estéril.",
+   "Refazer a barreira: avental e luvas novos."
+  ],
+  "erros": {
+   "A": "A semirrestrita exige roupa privativa, não é área estéril.",
+   "B": "Álcool sobre luvas não restaura a esterilidade da barreira.",
+   "D": "Ao sair da sala e circular, o avental também deixou a área estéril."
+  }
+ },
+ {
+  "assunto": "Ambiente cirúrgico",
+  "caso": "Entre duas cirurgias, a técnica de enfermagem limpa a mesa cirúrgica e o foco com álcool a 70%. Em seguida, o cirurgião aplica clorexidina alcoólica no abdome do próximo paciente. Um estudante anota: 'dois procedimentos de antissepsia'.",
+  "pergunta": "Como classificar corretamente os dois procedimentos?",
+  "opcoes": [
+   "Mesa e foco: antissepsia; abdome do paciente: desinfecção",
+   "Mesa e foco: desinfecção; abdome do paciente: antissepsia",
+   "Mesa e foco: esterilização; abdome do paciente: antissepsia",
+   "Mesa e foco: desinfecção; abdome do paciente: assepsia"
+  ],
+  "correta": "B",
+  "pista": "Um alvo inanimado e outro tecido vivo.",
+  "conceito": "Assepsia: práticas que evitam introduzir microrganismos num campo protegido. Antissepsia: agente em tecido vivo para reduzir carga microbiana. Desinfecção: artigos ou superfícies inanimadas, com nível conforme risco e produto. Esterilização: processo validado que elimina todas as formas viáveis, inclusive esporos.",
+  "raciocinio": [
+   "Separar os alvos: superfície inanimada × pele.",
+   "Aplicar desinfecção à superfície.",
+   "Aplicar antissepsia à pele."
+  ],
+  "erros": {
+   "A": "Inverte os conceitos: antissepsia é em tecido vivo.",
+   "C": "Esterilização é processo validado para artigos, não limpeza de superfície.",
+   "D": "Assepsia é o conjunto de práticas; o agente na pele é antissepsia."
+  }
+ },
+ {
+  "assunto": "Ambiente cirúrgico",
+  "caso": "Após uma colecistectomia videolaparoscópica em paciente de 52 anos, a CME recebe três itens: uma pinça laparoscópica usada na cavidade, uma lâmina de laringoscópio usada na intubação e o manguito do esfigmomanômetro.",
+  "pergunta": "Qual é o processamento mínimo correto de cada item?",
+  "opcoes": [
+   "Pinça: esterilização; lâmina: limpeza e desinfecção conforme risco; manguito: desinfecção de alto nível",
+   "Pinça: esterilização; lâmina: desinfecção de alto nível; manguito: limpeza e desinfecção conforme risco",
+   "Pinça: desinfecção de alto nível; lâmina: esterilização; manguito: limpeza e desinfecção conforme risco",
+   "Pinça: esterilização; lâmina: esterilização; manguito: desinfecção de alto nível"
+  ],
+  "correta": "B",
+  "pista": "Três contatos: cavidade estéril, mucosa e pele íntegra.",
+  "conceito": "Spaulding: crítico (tecido estéril ou sistema vascular) → esterilização; semicrítico (mucosas ou pele não íntegra) → no mínimo desinfecção de alto nível, como alguns dispositivos respiratórios; não crítico (pele íntegra) → limpeza e desinfecção conforme risco, como o manguito.",
+  "raciocinio": [
+   "Definir o tecido de contato de cada item.",
+   "Classificar: crítico, semicrítico e não crítico.",
+   "Atribuir o processo mínimo a cada classe."
+  ],
+  "erros": {
+   "A": "Inverte lâmina (mucosa) e manguito (pele íntegra).",
+   "C": "Inverte pinça (crítica) e lâmina (semicrítica).",
+   "D": "Superestima a lâmina e o manguito."
+  }
+ },
+ {
+  "assunto": "Ambiente cirúrgico",
+  "caso": "Na CME, um afastador chega da sala em recipiente fechado e é limpo. Por falta de tempo, segue direto para a autoclave. Após a esterilização, o técnico nota uma mancha de matéria orgânica na articulação e uma trava que não fecha.",
+  "pergunta": "Qual etapa do processamento falhou e onde deveria ter ocorrido?",
+  "opcoes": [
+   "Limpeza no ponto de uso, antes do transporte fechado",
+   "Inspeção, entre a limpeza e a esterilização",
+   "Liberação, com rastreabilidade após a esterilização",
+   "Inspeção, após a esterilização e antes da liberação"
+  ],
+  "correta": "B",
+  "pista": "Sujidade e defeito descobertos só após a autoclave.",
+  "conceito": "Etapas: ponto de uso (retirar sujidade grosseira), transporte em recipiente fechado, limpeza, inspeção (integridade, função e limpeza), desinfecção ou esterilização conforme classificação, e liberação com monitoramento, rastreabilidade e armazenamento protegido.",
+  "raciocinio": [
+   "Ordenar as etapas do processamento.",
+   "Localizar a verificação de integridade e limpeza.",
+   "Concluir: faltou a inspeção antes da autoclave."
+  ],
+  "erros": {
+   "A": "A retirada da sujidade grosseira no ponto de uso não substitui a inspeção.",
+   "C": "A liberação não detecta falhas de limpeza e de função antes do processo.",
+   "D": "A inspeção deve preceder o processo final, não sucedê-lo."
+  }
+ },
+ {
+  "assunto": "Ambiente cirúrgico",
+  "caso": "Na sala de recuperação, um anestesista ajusta o monitor e a bomba de infusão do leito 2 usando luvas de procedimento. Sem retirá-las nem higienizar as mãos, aspira em seguida o tubo traqueal do paciente do leito 3.",
+  "pergunta": "Quais momentos de higiene das mãos foram omitidos?",
+  "opcoes": [
+   "Antes de tocar o paciente e após tocar superfícies próximas ao paciente",
+   "Nenhum, pois o uso de luvas substitui a higiene das mãos entre leitos",
+   "Após tocar superfícies do entorno e antes de procedimento asséptico",
+   "Após tocar o paciente e após risco de exposição a fluidos corporais"
+  ],
+  "correta": "C",
+  "pista": "Contato com monitor e bomba, seguido de aspiração traqueal em outro paciente.",
+  "conceito": "Os cinco momentos são: antes de tocar o paciente; antes de procedimento limpo ou asséptico; após risco de exposição a fluidos; após tocar o paciente; após tocar superfícies próximas ao paciente. Luvas não substituem a higiene das mãos, e os momentos valem para o cuidado anestésico e a recuperação.",
+  "raciocinio": [
+   "Identificar o primeiro contato: superfícies do leito 2.",
+   "Identificar o segundo ato: aspiração, procedimento asséptico.",
+   "Somar os dois momentos omitidos."
+  ],
+  "erros": {
+   "A": "A aspiração é procedimento asséptico, e esse momento também foi omitido.",
+   "B": "Luvas não substituem a higiene das mãos.",
+   "D": "Não houve contato direto com o paciente do leito 2."
+  }
+ },
+ {
+  "assunto": "Ambiente cirúrgico",
+  "caso": "Cirurgiã de 34 anos prepara-se para mastectomia. Tem unhas longas com esmalte, retira o relógio mas mantém uma pulseira fina, esfrega mãos e antebraços com escova de cerdas duras e, ao terminar, veste o avental com as mãos ainda úmidas.",
+  "pergunta": "Quais falhas comprometem a antissepsia cirúrgica das mãos?",
+  "opcoes": [
+   "Unhas longas, pulseira mantida e escova abrasiva, pois secar as mãos é opcional",
+   "Unhas longas, escova abrasiva e mãos úmidas, pois pulseiras finas são permitidas",
+   "Pulseira mantida, escova abrasiva e mãos úmidas, pois unhas longas são aceitáveis",
+   "Unhas longas, pulseira mantida, escova abrasiva e mãos úmidas ao vestir o avental"
+  ],
+  "correta": "D",
+  "pista": "Quatro falhas distintas no mesmo preparo.",
+  "conceito": "Antissepsia cirúrgica: retirar anéis, relógios e pulseiras; unhas curtas e íntegras; produto e tempo conforme fabricante e protocolo; friccionar mãos e antebraços sem omitir superfícies, evitando escovas abrasivas; mãos acima dos cotovelos; secar completamente antes do avental e das luvas.",
+  "raciocinio": [
+   "Revisar adornos e unhas.",
+   "Revisar a técnica de fricção.",
+   "Revisar a secagem antes do avental."
+  ],
+  "erros": {
+   "A": "A secagem completa antes do avental e das luvas é obrigatória.",
+   "B": "Todos os adornos devem ser retirados.",
+   "C": "As unhas devem ser curtas e íntegras."
+  }
+ },
+ {
+  "assunto": "Ambiente cirúrgico",
+  "caso": "Instrumentadora veste o avental em técnica fechada, mas deixa os dedos sair pelos punhos antes de calçar as luvas, que calça tocando a face externa com a pele. Enquanto aguarda a equipe, mantém as mãos cruzadas na altura do quadril.",
+  "pergunta": "Quais correções estão de acordo com a técnica de paramentação?",
+  "opcoes": [
+   "Manter as mãos dentro dos punhos, calçar tocando a face externa e manter mãos à vista acima da cintura",
+   "Expor as mãos pelos punhos, calçar sem contato da pele com a face externa e manter mãos à vista acima da cintura",
+   "Manter as mãos dentro dos punhos, calçar sem contato da pele com a face externa e manter mãos à vista acima da cintura",
+   "Manter as mãos dentro dos punhos, calçar sem contato da pele com a face externa e manter mãos cruzadas abaixo da cintura"
+  ],
+  "correta": "C",
+  "pista": "Três passos da técnica fechada.",
+  "conceito": "Paramentação: pegar o avental pela face interna e deixá-lo abrir longe de superfícies; introduzir os braços sem expor as mãos pelos punhos na técnica fechada; o circulante ajusta e amarra a parte posterior; calçar as luvas sem contato entre pele e face externa; mãos à vista, acima da cintura e afastadas de áreas não estéreis.",
+  "raciocinio": [
+   "Revisar a técnica fechada.",
+   "Revisar o calçamento das luvas.",
+   "Definir a posição segura das mãos."
+  ],
+  "erros": {
+   "A": "A pele não deve tocar a face externa das luvas.",
+   "B": "Na técnica fechada, as mãos não são expostas pelos punhos.",
+   "D": "As mãos devem ficar acima da cintura e à vista."
+  }
+ },
+ {
+  "assunto": "Ambiente cirúrgico",
+  "caso": "Durante uma laparotomia em paciente com hepatite C, o residente perfura o dedo com a agulha de sutura. Propõe terminar o fechamento, que levará 40 minutos, e 'resolver depois'.",
+  "pergunta": "Qual é a conduta correta?",
+  "opcoes": [
+   "Cuidado imediato do ferimento, deixando a notificação para o fim do plantão",
+   "Concluir o fechamento, trocar as luvas e acionar o protocolo ocupacional ao final",
+   "Trocar apenas a luva perfurada e acionar o protocolo ocupacional ao final",
+   "Cuidado imediato, comunicação e protocolo sem atraso, com substituto no campo"
+  ],
+  "correta": "D",
+  "pista": "Exposição ocupacional com fonte de risco no meio da cirurgia.",
+  "conceito": "Após exposição ocupacional: cuidado imediato, comunicação e protocolo institucional sem atraso; a biossegurança do ambiente inclui notificação e avaliação conforme o protocolo ocupacional.",
+  "raciocinio": [
+   "Reconhecer a exposição ocupacional.",
+   "Priorizar o cuidado imediato do profissional.",
+   "Comunicar e acionar o protocolo sem atraso."
+  ],
+  "erros": {
+   "A": "Comunicação e protocolo fazem parte do cuidado imediato.",
+   "B": "O protocolo não deve esperar o fim da cirurgia.",
+   "C": "A troca da luva não resolve a exposição ocupacional."
+  }
+ },
+ {
+  "assunto": "Ambiente cirúrgico",
+  "caso": "Menino de 6 anos chega à sala para correção de hérnia inguinal esquerda, já sedado, sem pulseira de identificação. A circulante confirma o paciente chamando-o pelo nome, e ele responde de forma confusa. A mãe aguarda na recepção.",
+  "pergunta": "Como deve ser feita a confirmação antes da indução?",
+  "opcoes": [
+   "Confirmar com a mãe identidade, sítio e consentimento, com dois identificadores",
+   "Confirmar pelo nome dito pela criança, pois sedados podem confirmar a identidade",
+   "Dispensar a confirmação, pois crianças não precisam confirmar identidade e sítio",
+   "Confirmar com a mãe usando um identificador, pois o sítio consta no prontuário"
+  ],
+  "correta": "A",
+  "pista": "Criança sedada e sem pulseira, com a mãe disponível.",
+  "conceito": "Antes da indução, confirma-se verbalmente com o paciente identidade, procedimento, sítio e consentimento. Se não for possível (crianças, incapazes), tutor ou familiar assume. O preparo exige dois identificadores. Se o passo for saltado em emergência, todos devem estar de acordo.",
+  "raciocinio": [
+   "Reconhecer que a criança não pode confirmar.",
+   "Envolver a mãe na confirmação.",
+   "Usar dois identificadores, com sítio e consentimento."
+  ],
+  "erros": {
+   "B": "A criança sedada não confirma de forma confiável.",
+   "C": "Quando o paciente não pode confirmar, o responsável assume esse papel.",
+   "D": "São necessários dois identificadores, além de sítio e consentimento."
+  }
+ },
+ {
+  "assunto": "Ambiente cirúrgico",
+  "caso": "Na antissepsia para uma cesariana, a clorexidina alcoólica escorre e forma poça sob a coxa, junto à placa do bisturi elétrico. Os campos são colocados de imediato e o bisturi é acionado no primeiro minuto, surgindo chama no campo.",
+  "pergunta": "Qual falha técnica explica o evento?",
+  "opcoes": [
+   "Aplicação do centro para a periferia, que empurra a solução para baixo dos campos",
+   "Aplicação sem retorno com o mesmo aplicador, que deixa o produto mais concentrado",
+   "Acúmulo de solução sob campos e eletrodo, sem aguardar a secagem",
+   "Uso de área ampla de antissepsia, que aumenta o volume de solução no campo"
+  ],
+  "correta": "C",
+  "pista": "Poça de antisséptico alcoólico junto à placa, com uso de energia sem secagem.",
+  "conceito": "Preparo do sítio: aplicar em área ampla, do mais limpo para a periferia, sem retornar com o mesmo aplicador; evitar acúmulo de solução, contato com mucosas e umidade sob campos ou eletrodos; aguardar contato e secagem completa antes de campos, energia e incisão. Fogo: controlar combustível, oxidante e fonte de ignição.",
+  "raciocinio": [
+   "Identificar o combustível: álcool acumulado.",
+   "Identificar a ignição: bisturi elétrico.",
+   "Localizar a falha: acúmulo e ausência de secagem."
+  ],
+  "erros": {
+   "A": "Do centro para a periferia é o sentido correto.",
+   "B": "Não retornar com o mesmo aplicador é o correto.",
+   "D": "Preparar área ampla é recomendado."
+  }
+ },
+ {
+  "assunto": "Ambiente cirúrgico",
+  "caso": "Colecistectomia videolaparoscópica em paciente de 60 anos: após a incisão, a torre de vídeo não liga. Descobre-se que não foi testada antes do caso e que não havia equipamento reserva nem plano alternativo.",
+  "pergunta": "Quais etapas do preparo de equipamentos foram negligenciadas?",
+  "opcoes": [
+   "Revisar os cabos após a cirurgia e definir alternativa caso o recurso principal falhe",
+   "Revisar a manutenção após o uso e testar a função durante a pausa de saída",
+   "Testar a função antes do uso e definir alternativa caso o recurso principal falhe",
+   "Testar a função antes do uso e revisar os implantes de terceiros após a cirurgia"
+  ],
+  "correta": "C",
+  "pista": "Equipamento não testado e sem plano B.",
+  "conceito": "Equipamentos devem estar testados antes do uso: confirmar função, acessórios e integridade; testar anestesia, aspiração, monitorização e emergência; revisar cabos, conexões, aterramento, alarmes e energia reserva; planejar posicionamento e cabos; checar compatibilidade de implantes e imagens; definir alternativa caso o recurso principal falhe.",
+  "raciocinio": [
+   "Identificar a falha: equipamento sem teste prévio.",
+   "Identificar a ausência de plano alternativo.",
+   "Relacionar às duas etapas do preparo."
+  ],
+  "erros": {
+   "A": "Cabos e conexões se revisam antes do uso.",
+   "B": "Testar durante a saída é tarde demais.",
+   "D": "Implantes são outra verificação; o problema é ausência de alternativa."
+  }
+ },
+ {
+  "assunto": "Ambiente cirúrgico",
+  "caso": "Durante uma cirurgia de mão, a instrumentadora entrega o bisturi diretamente na mão do cirurgião, que se distrai e se corta. Ao final, duas peças (tendão e nódulo) são colocadas no mesmo frasco sem identificação, 'para rotular depois'.",
+  "pergunta": "Quais práticas deveriam ter sido adotadas?",
+  "opcoes": [
+   "Passagem mão a mão com luva dupla e identificação dos espécimes confirmada em voz alta",
+   "Zona neutra para perfurocortantes e identificação dos espécimes no laboratório de patologia",
+   "Passagem mão a mão com aviso verbal e identificação dos espécimes após a saída da sala",
+   "Zona neutra e identificação dos espécimes confirmada em voz alta antes do envio"
+  ],
+  "correta": "D",
+  "pista": "Perfurocortante mão a mão e espécimes sem rótulo.",
+  "conceito": "Perfurocortantes: usar zona neutra e evitar passagem direta de mão em mão quando possível. Espécimes: identificar e confirmar em voz alta antes do envio — nome do doente, descrição da amostra e marcas de orientação. A rotulagem incorreta é fonte frequente de erro.",
+  "raciocinio": [
+   "Corrigir a passagem de perfurocortantes.",
+   "Separar e identificar cada espécime.",
+   "Confirmar em voz alta antes do envio."
+  ],
+  "erros": {
+   "A": "Luva dupla não substitui a zona neutra.",
+   "B": "A identificação é feita na sala, antes do envio.",
+   "C": "A passagem direta deve ser evitada, e a rotulagem não se adia."
+  }
+ },
+ {
+  "assunto": "Ambiente cirúrgico",
+  "caso": "Criança de 25 kg será submetida a ressecção hepática, com perda sanguínea estimada em 250 mL. Na checagem antes da indução, há apenas um acesso periférico de fino calibre, e ninguém confirmou a disponibilidade de sangue.",
+  "pergunta": "Qual é a conduta adequada?",
+  "opcoes": [
+   "Não há risco, pois 250 mL correspondem a menos de 7 mL/kg nessa criança",
+   "Há risco, pois ultrapassa 7 mL/kg; manter o acesso atual e solicitar sangue se necessário",
+   "Há risco (acima de 7 mL/kg); dois acessos calibrosos ou central e sangue disponível",
+   "Não há risco, pois a perda não ultrapassa os 500 mL usados como limite no adulto"
+  ],
+  "correta": "C",
+  "pista": "Criança de 25 kg com perda prevista de 250 mL.",
+  "conceito": "A checagem antes da indução pergunta se há risco de perda > 500 mL (7 mL/kg em crianças). Havendo risco, recomendam-se pelo menos dois acessos calibrosos ou cateter central antes da incisão e confirmação de sangue ou fluidos para ressuscitação. A perda prevista é revista pelo cirurgião antes da incisão.",
+  "raciocinio": [
+   "Calcular o limite: 7 × 25 = 175 mL.",
+   "Comparar com a perda prevista: 250 mL.",
+   "Preparar acessos e sangue antes da incisão."
+  ],
+  "erros": {
+   "A": "250 mL em 25 kg correspondem a 10 mL/kg.",
+   "B": "O preparo deve preceder a incisão, e não esperar a necessidade.",
+   "D": "Na criança, o limite é 7 mL/kg, e não 500 mL."
+  }
+ },
+ {
+  "assunto": "Ambiente cirúrgico",
+  "caso": "Homem de 24 anos com apendicite perfurada e peritonite recebe ceftriaxona e metronidazol terapêuticos desde a admissão, há 4 horas. No 'time out', o coordenador pergunta sobre a profilaxia antimicrobiana nos últimos 60 minutos.",
+  "pergunta": "Como a equipe deve registrar esse item?",
+  "opcoes": [
+   "Administrar nova dose profilática antes da incisão, pois passou mais de 60 minutos",
+   "Deixar o campo em branco, pois nenhuma dose adicional será administrada",
+   "Adiar a incisão até completar 60 minutos de nova dose profilática",
+   "Assinalar 'não aplicável' após confirmação verbal, pois o antibiótico é terapêutico"
+  ],
+  "correta": "D",
+  "pista": "Antibiótico em uso como tratamento, não como profilaxia.",
+  "conceito": "Se os antibióticos profiláticos não foram dados, devem ser administrados antes da incisão; se foram há mais de 60 minutos, considerar nova dose. Se a profilaxia não for considerada adequada (casos sem incisão na pele ou contaminação em que os antibióticos são tratamento), assinala-se 'não aplicável' após confirmação verbal da equipe.",
+  "raciocinio": [
+   "Identificar o papel do antibiótico: tratamento.",
+   "Reconhecer a exceção prevista na lista.",
+   "Registrar 'não aplicável' com confirmação verbal."
+  ],
+  "erros": {
+   "A": "Em contaminação tratada com antibiótico terapêutico, a profilaxia não é o item adequado.",
+   "B": "Em branco é para quando uma nova dose não é dada em profilaxia; aqui cabe 'não aplicável'.",
+   "C": "Não há indicação de adiar a cirurgia."
+  }
+ },
+ {
+  "assunto": "Ambiente cirúrgico",
+  "caso": "Paciente de 55 anos entrou para herniorrafia inguinal direita, mas o cirurgião encontrou alça necrosada e realizou ressecção intestinal. Na saída da sala, a enfermeira lê em voz alta o procedimento previsto na programação.",
+  "pergunta": "O que deve ser confirmado nessa etapa?",
+  "opcoes": [
+   "O procedimento previsto na programação, a identidade, o sítio marcado, o consentimento e a via aérea",
+   "O procedimento efetivamente realizado, as contagens, os espécimes, os problemas de equipamento e o plano de recuperação",
+   "O procedimento previsto na programação, as contagens, os espécimes, os problemas de equipamento e o plano de recuperação",
+   "O procedimento efetivamente realizado, a identidade, o sítio marcado, o consentimento e a via aérea"
+  ],
+  "correta": "B",
+  "pista": "Procedimento ampliado durante a cirurgia.",
+  "conceito": "Antes de o paciente sair da sala, confirma-se o nome do procedimento realizado (pode ter mudado ou se expandido), a contagem de compressas, agulhas e instrumentos, a rotulagem dos espécimes, os problemas com equipamentos e as orientações para a recuperação.",
+  "raciocinio": [
+   "Reconhecer a mudança do procedimento.",
+   "Situar a etapa: saída da sala.",
+   "Listar os itens da saída com o procedimento real."
+  ],
+  "erros": {
+   "A": "Mistura o procedimento errado com itens de outra etapa.",
+   "C": "O procedimento mudou; confirma-se o realizado, não o programado.",
+   "D": "Identidade, sítio, consentimento e via aérea são da checagem antes da indução."
+  }
+ },
+ {
+  "assunto": "Ambiente cirúrgico",
+  "caso": "No 'time out' de uma prostatectomia, a instrumentadora percebe que o indicador de esterilização de uma das caixas não apresentou a mudança esperada. O cirurgião diz: 'Deve ser o indicador, vamos começar.'",
+  "pergunta": "Qual é a conduta adequada?",
+  "opcoes": [
+   "Iniciar a cirurgia e comunicar a discrepância na pausa de saída",
+   "Comunicar a discrepância à equipe e não usar a caixa antes da incisão",
+   "Usar a caixa após friccionar os instrumentos com álcool a 70%",
+   "Iniciar com a caixa e registrar o problema como falha de equipamento"
+  ],
+  "correta": "B",
+  "pista": "Indicador de esterilização sem resultado esperado.",
+  "conceito": "Na pausa antes da incisão, a enfermagem confirma verbalmente a esterilização e, para instrumentos esterilizados a vapor, que um indicador confirmou o sucesso. Qualquer discrepância deve ser comunicada a toda a equipe e reportada antes da incisão.",
+  "raciocinio": [
+   "Interpretar o indicador: esterilização não confirmada.",
+   "Lembrar que a pausa serve para isso.",
+   "Comunicar e não usar a caixa antes da incisão."
+  ],
+  "erros": {
+   "A": "A discrepância deve ser comunicada e resolvida antes da incisão.",
+   "C": "Álcool não substitui a esterilização de artigo crítico.",
+   "D": "Usar a caixa expõe o paciente a instrumental possivelmente não estéril."
+  }
+ },
+ {
+  "assunto": "Ambiente cirúrgico",
+  "caso": "Homem de 68 anos chega em choque por aneurisma de aorta roto. Na sala, o único oxímetro de pulso apresenta defeito, e não há outro disponível em tempo hábil.",
+  "pergunta": "Qual é a conduta recomendada?",
+  "opcoes": [
+   "Adiar a indução até obter oxímetro e manter o paciente em observação",
+   "Prosseguir sem discussão, pois em emergência a checagem é dispensada",
+   "Adiar a cirurgia até obter oxímetro, pois a oximetria é obrigatória sem exceções",
+   "Prosseguir, com acordo explícito da equipe sobre a necessidade de operar"
+  ],
+  "correta": "D",
+  "pista": "Emergência com risco de morte, sem oxímetro.",
+  "conceito": "A oximetria de pulso é componente necessário de anestesia segura. Sem oxímetro, cirurgião e anestesista avaliam a gravidade e consideram adiar; em casos urgentes, para salvar a vida ou a integridade, a exigência pode ser dispensada, com a equipe de acordo sobre prosseguir.",
+  "raciocinio": [
+   "Reconhecer a emergência com risco de morte.",
+   "Lembrar a exceção prevista.",
+   "Prosseguir com acordo explícito da equipe."
+  ],
+  "erros": {
+   "A": "Adiar uma emergência com risco de morte não é adequado.",
+   "B": "Mesmo em emergência, a equipe deve concordar.",
+   "C": "A exigência pode ser dispensada em caso urgente para salvar a vida."
+  }
+ },
+ {
+  "assunto": "Ambiente cirúrgico",
+  "caso": "Mulher de 38 anos, IMC 42, com refluxo ativo, será submetida a apendicectomia de urgência após refeição há 2 horas. Na avaliação da via aérea, é classificada como Mallampati 4.",
+  "pergunta": "Qual é o preparo adequado antes da indução?",
+  "opcoes": [
+   "Equipamento de via aérea difícil e assistente à cabeceira, com indução rápida e pressão cricoide",
+   "Equipamento de via aérea difícil e assistente à cabeceira, com indução habitual e ventilação sob máscara prolongada",
+   "Indução rápida com pressão cricoide, dispensando o assistente para reduzir a circulação na sala",
+   "Indução habitual e acionamento de equipamento de via aérea difícil apenas se houver falha"
+  ],
+  "correta": "A",
+  "pista": "Via aérea difícil somada a estômago cheio.",
+  "conceito": "Com risco elevado de via aérea (Mallampati 3 ou 4), a equipe deve se preparar para evitar a perda da via aérea: adaptar a técnica, dispor de equipamento de emergência e de assistente capaz. No risco de aspiração, reduzir o risco com indução rápida e assistente aplicando pressão cricoide. A indução só começa com equipamento e ajuda à cabeceira.",
+  "raciocinio": [
+   "Reconhecer dois riscos: via aérea difícil e aspiração.",
+   "Preparar equipamento e assistente.",
+   "Escolher indução rápida com pressão cricoide."
+  ],
+  "erros": {
+   "B": "No risco de aspiração, indica-se técnica de indução rápida.",
+   "C": "Um assistente capaz deve estar presente na indução.",
+   "D": "O equipamento deve estar pronto antes, e não após a falha."
+  }
+ },
+ {
+  "assunto": "Ambiente cirúrgico",
+  "caso": "Ao fim de uma colectomia, a circulante leva os instrumentais sujos em bandeja aberta pelo mesmo corredor por onde, naquele momento, passa o carro com caixas estéreis para a sala ao lado. Os resíduos seguem no mesmo carrinho até o expurgo.",
+  "pergunta": "Qual correção atende aos princípios de fluxo do centro cirúrgico?",
+  "opcoes": [
+   "Transportar o material usado em recipiente fechado junto ao material estéril, para concentrar os fluxos",
+   "Transportar o material usado em bandeja aberta ao expurgo, desde que em horário diferente do material estéril",
+   "Transportar o material usado em recipiente fechado ao expurgo ou CME, evitando cruzar com o material estéril",
+   "Transportar o material usado em bandeja aberta ao expurgo, pois a limpeza posterior elimina o risco"
+  ],
+  "correta": "C",
+  "pista": "Material usado em bandeja aberta cruzando com material estéril.",
+  "conceito": "A arquitetura e os fluxos devem separar funções e reduzir cruzamentos: pessoas com acesso controlado; material limpo e estéril com recebimento protegido e transporte fechado; material usado e resíduos com retirada segura, transporte em recipiente fechado, encaminhamento ao expurgo ou CME e destino conforme classificação.",
+  "raciocinio": [
+   "Identificar os dois fluxos que se cruzaram.",
+   "Lembrar o transporte fechado do material usado.",
+   "Separar os fluxos, evitando cruzamentos."
+  ],
+  "erros": {
+   "A": "Os fluxos devem ser separados, evitando cruzamentos.",
+   "B": "O transporte do material usado deve ser em recipiente fechado.",
+   "D": "O transporte fechado e a separação de fluxos são exigidos independentemente da limpeza posterior."
+  }
+ },
+ {
+  "assunto": "Abordagem inicial ao queimado",
+  "caso": "Motociclista de 27 anos colide com um carro e a moto pega fogo. Chega 40 minutos depois com queimaduras de espessura parcial em 18% da superfície corporal, PA 78/40 mmHg, FC 138 bpm, abdome distendido e doloroso e escoriações no flanco esquerdo.",
+  "pergunta": "Qual é a interpretação mais adequada da instabilidade hemodinâmica?",
+  "opcoes": [
+   "Pesquisar trauma associado como causa do choque, sem atribuí-lo só à queimadura",
+   "Atribuir o choque à dor intensa da queimadura e priorizar analgesia com opioide",
+   "Atribuir o choque à perda plasmática da queimadura e acelerar a fórmula de Parkland",
+   "Atribuir o choque ao componente distributivo da queimadura e iniciar coloide"
+  ],
+  "correta": "A",
+  "pista": "Choque grave precoce, abdome distendido e mecanismo de alta energia.",
+  "conceito": "Queimaduras graves são manejadas como trauma multissistêmico, com avaliação primária seguida da secundária. O mecanismo antecipa riscos: chama exige pesquisar fumaça e trauma associado. Deve-se examinar além da queimadura. O choque pode ser hipovolêmico, distributivo e cardiogênico, mas o trauma associado precisa ser procurado.",
+  "raciocinio": [
+   "Valorizar o mecanismo de alta energia.",
+   "Reconhecer sinais de lesão abdominal.",
+   "Investigar trauma associado junto com a ressuscitação."
+  ],
+  "erros": {
+   "B": "A dor não explica choque com abdome distendido e escoriações.",
+   "C": "Choque grave tão precoce, com abdome doloroso, exige buscar outra causa.",
+   "D": "Coloides são considerados após 8 a 24 horas; ignora o trauma associado."
+  }
+ },
+ {
+  "assunto": "Abordagem inicial ao queimado",
+  "caso": "Mulher de 46 anos é retirada de apartamento em chamas após 25 minutos. Está com voz rouca, dor de garganta, fuligem na boca e pelos das narinas chamuscados. SpO₂ de 96% em ar ambiente, sem estridor, FR 24 irpm.",
+  "pergunta": "Qual é a conduta mais adequada para a via aérea?",
+  "opcoes": [
+   "Broncoscopia antes de qualquer decisão, mantendo observação até o resultado",
+   "Oxigênio suplementar e intubação apenas se surgirem estridor ou queda da saturação",
+   "Intubação precoce, antecipando o edema, com apoio especializado",
+   "Radiografia de tórax e intubação apenas se houver infiltrado pulmonar"
+  ],
+  "correta": "C",
+  "pista": "Espaço fechado, rouquidão, fuligem e pelos chamuscados, com saturação ainda normal.",
+  "conceito": "Suspeitar de lesão inalatória diante de mudança da voz, dor de garganta, fuligem, pelos chamuscados, escarro carbonáceo, taquipneia ou hipoxemia e exposição em espaço fechado. Com alta suspeita, considerar intubação precoce: o edema laríngeo se desenvolve rapidamente. A decisão considera a trajetória esperada do edema, não só a aparência atual; em via aérea difícil, apoio especializado.",
+  "raciocinio": [
+   "Somar os sinais de lesão inalatória.",
+   "Projetar a evolução do edema.",
+   "Indicar intubação precoce com apoio adequado."
+  ],
+  "erros": {
+   "A": "A decisão não deve aguardar exames; considera a trajetória do edema.",
+   "B": "Esperar deterioração evidente arrisca perder a janela da via aérea.",
+   "D": "A radiografia não define a indicação de via aérea."
+  }
+ },
+ {
+  "assunto": "Abordagem inicial ao queimado",
+  "caso": "Criança de 3 anos derrubou panela de água fervente sobre o tórax. Há área central esbranquiçada, sem dor à punção e sem branqueamento, circundada por pele vermelha, com bolhas, muito dolorosa e que branqueia à pressão. A área total é de 6%.",
+  "pergunta": "Como classificar as lesões e qual é o destino?",
+  "opcoes": [
+   "Centro de espessura total e periferia parcial superficial; alta com curativo e retorno em 48 horas",
+   "Centro de espessura total e periferia parcial superficial; encaminhar a centro de queimados",
+   "Centro parcial superficial e periferia parcial profunda; internar sem encaminhamento",
+   "Centro parcial profundo e periferia superficial; tratar ambulatorialmente com retorno em 48 horas"
+  ],
+  "correta": "B",
+  "pista": "Área central insensível dentro de área bolhosa e dolorosa.",
+  "conceito": "Parcial superficial: vermelha, bolhosa, edemaciada, muito dolorosa, branqueia. Espessura total: esbranquiçada, carbonizada ou translúcida, sem sensibilidade à punção e sem branqueamento. Espessura total em qualquer idade é critério de encaminhamento a centro de queimados, e pode exigir excisão e enxertia.",
+  "raciocinio": [
+   "Classificar o centro: sem sensibilidade e sem branqueamento.",
+   "Classificar a periferia: bolhosa, dolorosa, branqueia.",
+   "Aplicar o critério de encaminhamento."
+  ],
+  "erros": {
+   "A": "Espessura total em qualquer idade é critério de encaminhamento.",
+   "C": "Inverte as profundidades.",
+   "D": "Sem sensibilidade à punção é espessura total; e há critério de encaminhamento."
+  }
+ },
+ {
+  "assunto": "Abordagem inicial ao queimado",
+  "caso": "Homem de 50 anos tem queimadura por chama na coxa com bolhas que se rompem facilmente, sensibilidade variável ao toque e ausência de branqueamento à pressão. Pergunta se 'vai fechar sozinho como uma bolha comum'.",
+  "pergunta": "Qual é a interpretação mais adequada?",
+  "opcoes": [
+   "Espessura total; a sensibilidade variável confirma perda completa da derme",
+   "Parcial profunda; pode ter perdido os anexos e exigir excisão e enxertia",
+   "Parcial profunda; a cicatrização espontânea está garantida pelos anexos",
+   "Parcial superficial; os anexos preservados garantem cicatrização espontânea"
+  ],
+  "correta": "B",
+  "pista": "Bolhas frágeis, sensibilidade variável, sem branqueamento.",
+  "conceito": "Parcial profunda: bolhas facilmente rompidas, resposta variável, sem branqueamento. Queimaduras que avançam pela derme profunda, abaixo dos anexos, perdem o potencial de cicatrização primária e podem exigir excisão e enxertia.",
+  "raciocinio": [
+   "Testar o branqueamento: ausente.",
+   "Avaliar a sensibilidade: variável.",
+   "Relacionar à possível perda dos anexos."
+  ],
+  "erros": {
+   "A": "Na espessura total não há sensibilidade à punção.",
+   "C": "Na parcial profunda a lesão pode ultrapassar os anexos, sem garantia de cicatrização.",
+   "D": "A parcial superficial branqueia à pressão."
+  }
+ },
+ {
+  "assunto": "Abordagem inicial ao queimado",
+  "caso": "Adulto de 35 anos, 70 kg, tem queimaduras de espessura parcial em todo o membro inferior esquerdo, em toda a face anterior do tronco e nos genitais. Não há lesão inalatória.",
+  "pergunta": "Qual é a superfície queimada e a classificação da American Burn Association?",
+  "opcoes": [
+   "28%, grave",
+   "37%, moderada",
+   "37%, grave",
+   "46%, grave"
+  ],
+  "correta": "C",
+  "pista": "Perna inteira, tronco anterior e genitais em adulto.",
+  "conceito": "Regra dos nove no adulto: cabeça 9%, cada braço 9%, tórax anterior 18%, dorso 18%, cada perna 18%, genitais 1%. Aqui: 18 + 18 + 1 = 37%. ABA: adulto com espessura parcial < 10% menor; 10 a 20% moderada; > 20% grave.",
+  "raciocinio": [
+   "Somar: perna (18) + tronco anterior (18) + genitais (1).",
+   "Obter 37%.",
+   "Classificar: acima de 20% é grave."
+  ],
+  "erros": {
+   "A": "Conta a perna como 9%.",
+   "B": "Acima de 20% de espessura parcial no adulto é grave.",
+   "D": "Soma o dorso ou conta a perna duas vezes."
+  }
+ },
+ {
+  "assunto": "Abordagem inicial ao queimado",
+  "caso": "Menina de 2 anos e 12 kg sofre escaldadura em toda a cabeça e em toda a face anterior do tronco, com lesões de espessura parcial.",
+  "pergunta": "Qual é a superfície queimada e a meta de diurese na reposição?",
+  "opcoes": [
+   "36%, com meta de 1 mL/kg/h",
+   "36%, com meta de 0,5 mL/kg/h",
+   "27%, com meta de 0,5 mL/kg/h",
+   "27%, com meta de 1 mL/kg/h"
+  ],
+  "correta": "A",
+  "pista": "Criança pequena: cabeça proporcionalmente maior.",
+  "conceito": "Na criança: cabeça 18%, cada braço 9%, cada perna 14%, tronco anterior 18%, dorso 18%. Aqui: 18 + 18 = 36%. Meta de diurese: 0,5 mL/kg/h no adulto e 1 mL/kg/h em crianças com menos de 30 kg. O gráfico de Lund e Browder é o mais específico.",
+  "raciocinio": [
+   "Usar a regra pediátrica: cabeça 18%.",
+   "Somar o tronco anterior: 36%.",
+   "Aplicar a meta pediátrica: 1 mL/kg/h."
+  ],
+  "erros": {
+   "B": "Acerta a área, mas a meta de 0,5 mL/kg/h é do adulto.",
+   "C": "Erra a área e a meta.",
+   "D": "Usa a cabeça do adulto (9%)."
+  }
+ },
+ {
+  "assunto": "Abordagem inicial ao queimado",
+  "caso": "Mulher de 60 kg tem queimadura de espessura parcial em 30% da superfície corporal. Chega 3 horas após o acidente, já tendo recebido 900 mL de cristaloide no pré-hospitalar.",
+  "pergunta": "Qual taxa de infusão deve ser programada até completar as primeiras 8 horas pós-queimadura?",
+  "opcoes": [
+   "720 mL/h",
+   "450 mL/h",
+   "338 mL/h",
+   "540 mL/h"
+  ],
+  "correta": "D",
+  "pista": "Três dados: volume de Parkland, tempo já transcorrido e fluido já recebido.",
+  "conceito": "Parkland: 4 × 30 × 60 = 7.200 mL em 24 horas; metade (3.600 mL) nas primeiras 8 horas contadas desde a queimadura. Já recebeu 900 mL, restam 2.700 mL; passaram 3 horas, restam 5 horas: 2.700 ÷ 5 = 540 mL/h. A outra metade vai nas 16 horas seguintes.",
+  "raciocinio": [
+   "Calcular 24 horas: 7.200 mL; primeira metade: 3.600 mL.",
+   "Descontar o volume recebido: restam 2.700 mL.",
+   "Dividir pelas 5 horas restantes: 540 mL/h."
+  ],
+  "erros": {
+   "A": "Desconta o tempo, mas ignora os 900 mL já infundidos.",
+   "B": "Divide a metade do volume por 8 horas, ignorando o tempo transcorrido e o volume recebido.",
+   "C": "Desconta o volume, mas divide pelas 8 horas completas."
+  }
+ },
+ {
+  "assunto": "Abordagem inicial ao queimado",
+  "caso": "Menino de 4 anos e 15 kg tem 20% de superfície corporal queimada. A equipe calcula o volume de Parkland e precisa definir a infusão horária total nas primeiras 8 horas.",
+  "pergunta": "Qual é a infusão total e a composição correta?",
+  "opcoes": [
+   "125 mL/h: 75 mL/h de Parkland mais 50 mL/h de manutenção sem glicose",
+   "75 mL/h apenas de Parkland, pois a manutenção está incluída na fórmula",
+   "125 mL/h: 75 de Parkland + 50 de manutenção com dextrose a 5%",
+   "135 mL/h: 75 mL/h de Parkland mais 60 mL/h de manutenção sem glicose"
+  ],
+  "correta": "C",
+  "pista": "Criança pequena: ressuscitação somada à manutenção.",
+  "conceito": "Parkland: 4 × 20 × 15 = 1.200 mL; metade (600 mL) em 8 horas = 75 mL/h. Manutenção: 4 mL/kg/h nos primeiros 10 kg (40) + 2 mL/kg/h nos 5 kg seguintes (10) = 50 mL/h, com dextrose a 5%, pois o glicogênio hepático se esgota após 12 a 14 horas de jejum.",
+  "raciocinio": [
+   "Calcular a taxa de Parkland: 75 mL/h.",
+   "Calcular a manutenção: 50 mL/h.",
+   "Somar e acrescentar dextrose à manutenção."
+  ],
+  "erros": {
+   "A": "Acerta o volume, mas omite a dextrose.",
+   "B": "Na criança pequena soma-se a manutenção.",
+   "D": "A manutenção é 4 mL/kg/h nos primeiros 10 kg e 2 mL/kg/h nos seguintes, com dextrose."
+  }
+ },
+ {
+  "assunto": "Abordagem inicial ao queimado",
+  "caso": "Homem de 90 kg em reposição por Parkland evolui na 14ª hora com diurese de 180 mL/h, edema importante de face e membros, e a pressão de pico no ventilador está subindo.",
+  "pergunta": "Qual é a conduta mais adequada?",
+  "opcoes": [
+   "Reduzir a infusão, pela diurese muito acima da meta e sinais de excesso",
+   "Aumentar a infusão, para compensar a perda plasmática que causa o edema",
+   "Manter a infusão prevista, pois a fórmula de Parkland deve ser cumprida",
+   "Fazer bolus de cristaloide, para proteger os rins do edema progressivo"
+  ],
+  "correta": "A",
+  "pista": "Diurese de 2 mL/kg/h com edema progressivo.",
+  "conceito": "A fórmula inicia; a fisiologia corrige. Meta no adulto: 0,5 mL/kg/h (45 mL/h para 90 kg). Deve-se titular a infusão, evitar reposição excessiva, bolus sem indicação, perseguir apenas a fórmula e ignorar edema progressivo. A sobrecarga amplia o extravasamento capilar e o edema (fluid creep).",
+  "raciocinio": [
+   "Calcular a meta: 45 mL/h.",
+   "Comparar: 180 mL/h está muito acima, com edema.",
+   "Reduzir a infusão."
+  ],
+  "erros": {
+   "B": "Aumentar amplia o extravasamento e o edema.",
+   "C": "Não se deve perseguir apenas a fórmula.",
+   "D": "Bolus sem indicação piora a sobrecarga."
+  }
+ },
+ {
+  "assunto": "Abordagem inicial ao queimado",
+  "caso": "Na 6ª hora de ressuscitação de uma mulher com 40% de superfície corporal queimada, o residente propõe trocar o cristaloide por albumina 'para segurar o líquido no vaso'.",
+  "pergunta": "Qual é a orientação adequada?",
+  "opcoes": [
+   "Alternar cristaloide e albumina a cada hora desde a admissão",
+   "Manter cristaloide; coloides são contraindicados em qualquer momento",
+   "Manter cristaloide; coloides podem ser considerados após 8 a 24 horas",
+   "Iniciar albumina, pois coloides são o fluido inicial recomendado"
+  ],
+  "correta": "C",
+  "pista": "Proposta de coloide na 6ª hora.",
+  "conceito": "Na ressuscitação inicial usam-se cristaloides. Coloides, geralmente albumina, podem ser considerados após 8 a 24 horas de tentativas de ressuscitação, embora várias estratégias sejam usadas na prática.",
+  "raciocinio": [
+   "Situar o tempo: 6ª hora.",
+   "Lembrar o fluido inicial: cristaloide.",
+   "Considerar coloide só após 8 a 24 horas."
+  ],
+  "erros": {
+   "A": "Não há recomendação de alternância precoce.",
+   "B": "Coloides podem ser considerados após 8 a 24 horas.",
+   "D": "O fluido inicial recomendado é cristaloide."
+  }
+ },
+ {
+  "assunto": "Abordagem inicial ao queimado",
+  "caso": "Homem de 52 anos, fumante, retirado de depósito em chamas após exposição prolongada, está confuso. Tem carboxi-hemoglobina de 3,8% e lactato venoso de 11 mmol/L.",
+  "pergunta": "Qual é a interpretação mais adequada?",
+  "opcoes": [
+   "Carboxi-hemoglobina elevada para fumante; lactato sugere intoxicação por cianeto",
+   "Carboxi-hemoglobina dentro da referência para fumante; lactato sugere intoxicação por cianeto",
+   "Carboxi-hemoglobina dentro da referência para fumante; lactato sem significado toxicológico",
+   "Carboxi-hemoglobina elevada para fumante; lactato sugere intoxicação por monóxido de carbono"
+  ],
+  "correta": "B",
+  "pista": "Fumante com carboxi-hemoglobina de 3,8% e lactato muito alto.",
+  "conceito": "Carboxi-hemoglobina avalia monóxido de carbono: referência de 0 a 2,3% em não fumantes e de 2,1 a 4,2% em fumantes. Lactato de 8 mmol/L ou mais na gasometria sugere intoxicação por cianeto. Solicitam-se ambos após exposição prolongada em espaço fechado.",
+  "raciocinio": [
+   "Interpretar a carboxi-hemoglobina pela faixa do fumante.",
+   "Interpretar o lactato: 8 mmol/L ou mais.",
+   "Concluir: suspeita de cianeto."
+  ],
+  "erros": {
+   "A": "3,8% está dentro da referência do fumante.",
+   "C": "Lactato de 8 mmol/L ou mais sugere cianeto.",
+   "D": "3,8% está na faixa do fumante, e o lactato se associa ao cianeto."
+  }
+ },
+ {
+  "assunto": "Abordagem inicial ao queimado",
+  "caso": "Mulher de 40 anos tem queimaduras de espessura parcial em 8% e de espessura total em 3% da superfície corporal, em tronco e membros, sem áreas críticas.",
+  "pergunta": "Qual é a classificação ABA e a conduta de destino?",
+  "opcoes": [
+   "Moderada, com encaminhamento a centro de queimados pela espessura total",
+   "Menor, com alta e revisão em 1 a 2 dias, pois a parcial é inferior a 10%",
+   "Grave, com encaminhamento, pois a espessura total supera 2%",
+   "Moderada, com alta e revisão em 1 a 2 dias, sem necessidade de encaminhamento"
+  ],
+  "correta": "A",
+  "pista": "Componente de espessura total de 3%.",
+  "conceito": "ABA: espessura total < 2% menor; 2 a 5% moderada; > 5% grave. Adulto com espessura parcial < 10% seria menor, mas prevalece o componente mais grave. Queimaduras moderadas e graves exigem internação ou transferência, e espessura total em qualquer idade é critério de encaminhamento.",
+  "raciocinio": [
+   "Classificar a parcial: 8%, menor.",
+   "Classificar a total: 3%, moderada.",
+   "Adotar a mais grave e encaminhar."
+  ],
+  "erros": {
+   "B": "A espessura total de 3% já eleva a classificação e indica encaminhamento.",
+   "C": "Espessura total de 2 a 5% é moderada, não grave.",
+   "D": "Espessura total em qualquer idade é critério de encaminhamento."
+  }
+ },
+ {
+  "assunto": "Abordagem inicial ao queimado",
+  "caso": "Homem de 48 anos, diabético insulinodependente, tem queimadura de espessura parcial de 7% que envolve circunferencialmente o antebraço direito.",
+  "pergunta": "Como classificar e conduzir o caso?",
+  "opcoes": [
+   "Moderada, pela circunferência e comorbidade, com internação ou transferência",
+   "Menor, pois a espessura parcial é inferior a 10%, com alta e retorno em 1 a 2 dias",
+   "Grave, pela lesão circunferencial, com intubação e reposição formal imediatas",
+   "Menor, com internação apenas se houver sinais de infecção após 48 horas"
+  ],
+  "correta": "A",
+  "pista": "Extensão pequena, porém circunferencial em diabético.",
+  "conceito": "Pela ABA, queimadura circunferencial e problema clínico que predispõe à infecção (como diabetes) classificam o caso como moderado, mesmo com área pequena. Queimaduras circunferenciais de extremidades ou tronco predispõem a síndrome compartimental. Moderadas e graves exigem internação ou transferência.",
+  "raciocinio": [
+   "Classificar pela área: seria menor.",
+   "Aplicar os modificadores: circunferência e diabetes.",
+   "Reclassificar como moderada e internar."
+  ],
+  "erros": {
+   "B": "Circunferência e comorbidade elevam a gravidade.",
+   "C": "A circunferência não é critério de grave nem indica intubação.",
+   "D": "A lesão circunferencial exige vigilância desde o início."
+  }
+ },
+ {
+  "assunto": "Abordagem inicial ao queimado",
+  "caso": "Eletricista de 32 anos tocou rede de 13.800 V. Tem pequenas lesões de entrada na mão e de saída no pé. Seis horas depois, o antebraço está tenso e doloroso, e a urina está escura. O CK está muito elevado.",
+  "pergunta": "Qual é a interpretação e a conduta adequadas?",
+  "opcoes": [
+   "Rabdomiólise e síndrome compartimental por alta voltagem; ECG, CK e centro de queimados",
+   "Síndrome compartimental isolada, sem relação com a voltagem; observar sem exames adicionais",
+   "Queimadura de baixa voltagem com lesões mínimas; curativo e alta com retorno em 48 horas",
+   "Rabdomiólise por alta voltagem sem risco compartimental; alta após normalizar o CK"
+  ],
+  "correta": "A",
+  "pista": "Alta voltagem com lesões cutâneas pequenas, antebraço tenso e urina escura.",
+  "conceito": "Elétrica: baixa voltagem < 1.000 V; alta ≥ 1.000 V, com maior destruição interna, rabdomiólise e síndrome compartimental. Conduta: ECG, CK seriada e vigilância. Queimaduras elétricas, inclusive por raio, são critério de encaminhamento.",
+  "raciocinio": [
+   "Classificar a voltagem: alta.",
+   "Reconhecer rabdomiólise e síndrome compartimental.",
+   "Monitorar e encaminhar."
+  ],
+  "erros": {
+   "B": "O quadro decorre da destruição interna da alta voltagem.",
+   "C": "13.800 V é alta voltagem, e a pele subestima a lesão.",
+   "D": "O antebraço tenso e doloroso sugere compartimento."
+  }
+ },
+ {
+  "assunto": "Abordagem inicial ao queimado",
+  "caso": "Pedreiro de 36 anos tem respingo de soda cáustica (álcali) no rosto e no olho direito. Chega com dor, hiperemia e lacrimejamento.",
+  "pergunta": "Qual é a conduta inicial mais adequada?",
+  "opcoes": [
+   "Irrigação extensa e alta com colírio, sem necessidade de encaminhamento",
+   "Neutralização com solução ácida, avaliação da córnea e alta se a visão estiver normal e preservada",
+   "Irrigação breve, sulfadiazina de prata na face e retorno em 48 horas",
+   "Irrigação extensa, fluoresceína na córnea e encaminhamento por ser química"
+  ],
+  "correta": "D",
+  "pista": "Agente alcalino atingindo face e olho.",
+  "conceito": "Ácido ou álcali: irrigação extensa é a prioridade. Em queimaduras faciais, avaliar a córnea com fluoresceína (lesão corneana e glaucoma agudo são complicações). Queimaduras químicas e da face são critérios de encaminhamento a centro de queimados.",
+  "raciocinio": [
+   "Priorizar a irrigação extensa.",
+   "Avaliar a córnea com fluoresceína.",
+   "Encaminhar pela queimadura química em área crítica."
+  ],
+  "erros": {
+   "A": "Queimaduras químicas são critério de encaminhamento.",
+   "B": "A conduta descrita é irrigação extensa, não neutralização.",
+   "C": "A irrigação deve ser extensa, e a sulfadiazina deve ser evitada na face."
+  }
+ },
+ {
+  "assunto": "Abordagem inicial ao queimado",
+  "caso": "Técnica de laboratório de 29 anos expõe a ponta do dedo indicador a ácido fluorídrico. Após irrigação extensa, persiste dor intensa. A equipe opta por infiltração subcutânea de gluconato de cálcio.",
+  "pergunta": "Qual é a apresentação e o limite de dose adequados?",
+  "opcoes": [
+   "Gluconato de cálcio a 2,5%, 0,5 mL/cm², no máximo 0,5 mL por dedo",
+   "Gluconato de cálcio a 10%, 0,5 mL/cm², sem limite por dedo",
+   "Gluconato de cálcio a 10%, 0,5 mL/cm², no máximo 0,5 mL por dedo",
+   "Gluconato de cálcio a 2,5%, 5 mL/cm², no máximo 5 mL por dedo"
+  ],
+  "correta": "C",
+  "pista": "Ácido fluorídrico em dedo, com infiltração.",
+  "conceito": "No ácido fluorídrico, após irrigação, usa-se gluconato de cálcio: subcutâneo sob a área queimada com solução a 10%, 0,5 mL/cm², máximo de 0,5 mL por dedo; gaze umedecida com solução a 10%; ou gel a 2,5% friccionado por 15 a 30 minutos, reaplicado a cada 10 a 15 minutos. Há também a via intra-arterial.",
+  "raciocinio": [
+   "Identificar a via: infiltração subcutânea.",
+   "Escolher a apresentação: solução a 10%.",
+   "Respeitar o limite digital: 0,5 mL por dedo."
+  ],
+  "erros": {
+   "A": "O gel a 2,5% é tópico; a infiltração usa solução a 10%.",
+   "B": "Há limite de 0,5 mL por dedo.",
+   "D": "Apresentação e doses incorretas."
+  }
+ },
+ {
+  "assunto": "Abordagem inicial ao queimado",
+  "caso": "Gestante de 38 semanas sofre queimadura de espessura parcial de 4% no antebraço ao cozinhar. O plantonista prescreve sulfadiazina de prata.",
+  "pergunta": "Qual é a análise correta da prescrição?",
+  "opcoes": [
+   "Adequada, pois a sulfadiazina é indicada em queimaduras de espessura parcial",
+   "Adequada, desde que associada a curativo úmido-seco para desbridamento",
+   "Inadequada apenas se a queimadura estiver na face, pelo risco de pigmentação",
+   "Inadequada, pois a sulfadiazina é contraindicada em gestante próxima ou a termo"
+  ],
+  "correta": "D",
+  "pista": "Gestante a termo com prescrição de sulfadiazina.",
+  "conceito": "A sulfadiazina de prata é usada em queimaduras parciais e totais, mas deve ser evitada na face e é contraindicada em gestantes próximas ou a termo, prematuros, lactentes com menos de 2 meses, lactantes, deficiência de G6PD e alergia a sulfa. Pode retardar a cicatrização em relação a outros curativos.",
+  "raciocinio": [
+   "Reconhecer a indicação geral.",
+   "Checar as contraindicações: gestação a termo.",
+   "Trocar a cobertura."
+  ],
+  "erros": {
+   "A": "A indicação existe, mas há contraindicação nessa gestante.",
+   "B": "O curativo úmido-seco não deve ser usado.",
+   "C": "Além da face, há contraindicações sistêmicas como gestação a termo."
+  }
+ },
+ {
+  "assunto": "Abordagem inicial ao queimado",
+  "caso": "Jovem de 20 anos recebeu alta com curativo de prata em membrana para queimadura parcial superficial de 4% na perna. Em casa, a mãe troca o curativo duas vezes ao dia, como fazia com gaze comum.",
+  "pergunta": "Qual orientação está correta?",
+  "opcoes": [
+   "Membranas ficam por dias a semanas até a epitelização, conforme o fabricante",
+   "Curativos em membrana são trocados uma vez ao dia, com limpeza com antisséptico alcoólico",
+   "Curativos em membrana são retirados em 24 horas e substituídos por gaze seca",
+   "Curativos em membrana são trocados duas vezes ao dia, como a gaze não aderente"
+  ],
+  "correta": "A",
+  "pista": "Membrana de prata trocada como curativo comum.",
+  "conceito": "Curativos não membranosos: trocar duas vezes ao dia, umedecer o curativo aderido antes de retirar e limpar com água morna e sabonete suave. Curativos em membrana (como os de prata absorventes e não absorventes) permanecem por dias a semanas até a epitelização, seguindo as instruções do fabricante.",
+  "raciocinio": [
+   "Identificar o tipo de curativo: membrana.",
+   "Separar a rotina da membrana da rotina da gaze.",
+   "Orientar a permanência até a epitelização."
+  ],
+  "erros": {
+   "B": "Não é o esquema descrito, e a limpeza é com água morna e sabonete suave.",
+   "C": "A membrana permanece até a epitelização.",
+   "D": "A troca duas vezes ao dia vale para curativos não membranosos."
+  }
+ },
+ {
+  "assunto": "Abordagem inicial ao queimado",
+  "caso": "Homem de 45 anos tem queimadura superficial, vermelha e dolorosa, sem bolhas, no ombro após exposição solar prolongada. A última vacina antitetânica foi há 7 anos.",
+  "pergunta": "Qual é a conduta em relação ao tétano?",
+  "opcoes": [
+   "Tdap 0,5 mL IM, pois passaram mais de 5 anos da última dose",
+   "Tdap 0,5 mL IM apenas se a queimadura evoluir com bolhas em 24 horas",
+   "Tdap 0,5 mL IM, pois toda queimadura exige reforço antitetânico",
+   "Não há indicação de Tdap, pois a queimadura é superficial"
+  ],
+  "correta": "D",
+  "pista": "Queimadura superficial, sem bolhas.",
+  "conceito": "Tdap 0,5 mL IM é recomendada em queimaduras além da superficial (maior que primeiro grau), se a vacinação estiver incompleta ou houver mais de 5 anos desde a última dose.",
+  "raciocinio": [
+   "Classificar a profundidade: superficial.",
+   "Verificar se há indicação para essa profundidade.",
+   "Concluir: sem indicação de Tdap."
+  ],
+  "erros": {
+   "A": "O intervalo só importa em queimaduras além da superficial.",
+   "B": "A indicação depende da profundidade atual e do estado vacinal.",
+   "C": "A indicação é para queimaduras além da superficial."
+  }
+ },
+ {
+  "assunto": "Abordagem inicial ao queimado",
+  "caso": "Homem de 40 anos com 30% de superfície corporal queimada está com PA 88/50 mmHg em plena ressuscitação e refere dor intensa. O residente quer prescrever morfina.",
+  "pergunta": "Qual é a opção analgésica mais adequada nesse momento?",
+  "opcoes": [
+   "Morfina 0,1 mg/kg IV a cada 10 a 15 minutos, pela maior duração de ação",
+   "Fentanil 1 a 2 mcg/kg IV a cada 5 minutos, pela curta duração",
+   "Morfina 1 a 2 mcg/kg IV a cada 5 minutos, pela instabilidade",
+   "Fentanil 0,1 mg/kg IV a cada 10 a 15 minutos, pela curta duração"
+  ],
+  "correta": "B",
+  "pista": "Instabilidade hemodinâmica no início da ressuscitação.",
+  "conceito": "Fentanil 1 a 2 mcg/kg IV a cada 5 minutos (adulto habitual 50 a 100 mcg) é útil se houver instabilidade ou no início da ressuscitação, pela curta duração. Morfina 0,1 mg/kg IV (adulto 6 a 10 mg) a cada 10 a 15 minutos. A dor pode exigir redoses frequentes.",
+  "raciocinio": [
+   "Reconhecer a instabilidade.",
+   "Preferir o opioide de curta duração.",
+   "Aplicar dose e intervalo do fentanil."
+  ],
+  "erros": {
+   "A": "A morfina é opção, mas o fentanil é preferido na instabilidade.",
+   "C": "Dose e intervalo da morfina estão errados.",
+   "D": "Dose e intervalo do fentanil estão errados."
+  }
+ },
+ {
+  "assunto": "Abordagem inicial ao queimado",
+  "caso": "Menino de 18 meses é levado com queimadura por água quente nas duas mãos e nos punhos, com limites nítidos 'em luva' e sem respingos. O pai relata que a criança 'abriu sozinha a torneira da banheira'.",
+  "pergunta": "Qual deve ser a preocupação adicional da equipe?",
+  "opcoes": [
+   "Considerar apenas a gravidade local, pois escaldaduras são frequentes no ambiente doméstico",
+   "Considerar trauma não acidental, pela história incoerente com exame e idade",
+   "Considerar queimadura química, pois o padrão em luva é típico de agentes alcalinos",
+   "Considerar lesão inalatória, pois escaldaduras em crianças costumam associar-se à fumaça"
+  ],
+  "correta": "B",
+  "pista": "Padrão da lesão incompatível com a história e a idade.",
+  "conceito": "A história direciona a gravidade oculta: deve-se avaliar a coerência da história pediátrica. Considerar trauma não acidental se a história não corresponder ao exame ou ao estágio de desenvolvimento da criança. Mãos também são área crítica.",
+  "raciocinio": [
+   "Comparar história, exame e desenvolvimento.",
+   "Reconhecer a incoerência.",
+   "Considerar trauma não acidental."
+  ],
+  "erros": {
+   "A": "A frequência doméstica não afasta a incoerência da história.",
+   "C": "Não há agente químico na história.",
+   "D": "Não há exposição à fumaça."
+  }
+ },
+ {
+  "assunto": "Abordagem inicial ao queimado",
+  "caso": "Jovem de 23 anos recebeu alta com queimadura parcial superficial de 3% no braço. Retorna em 48 horas, conforme orientado: parte da área agora está esbranquiçada, sem branqueamento e com sensibilidade reduzida.",
+  "pergunta": "Qual é a interpretação e a conduta?",
+  "opcoes": [
+   "Conversão para maior profundidade; reclassificar e reavaliar o destino",
+   "Reação ao curativo; trocar a cobertura e manter a classificação inicial",
+   "Evolução esperada da cicatrização; manter o curativo e novo retorno em 7 dias",
+   "Infecção local sem mudança de profundidade; antibiótico tópico e alta"
+  ],
+  "correta": "A",
+  "pista": "Área que perdeu branqueamento e sensibilidade em 48 horas.",
+  "conceito": "Pacientes com alta (queimadura menor) devem ser reavaliados em 1 a 2 dias, pois a queimadura pode converter para um padrão de maior profundidade. A alta pressupõe queimadura menor e ambiente domiciliar de apoio.",
+  "raciocinio": [
+   "Comparar os achados com a avaliação inicial.",
+   "Reconhecer a conversão de profundidade.",
+   "Reclassificar e redefinir o destino."
+  ],
+  "erros": {
+   "B": "A mudança de profundidade exige reclassificação.",
+   "C": "Perda de branqueamento e de sensibilidade não é evolução esperada.",
+   "D": "Os achados indicam aprofundamento, não apenas infecção."
+  }
+ },
+ {
+  "assunto": "Abordagem inicial ao queimado",
+  "caso": "Criança de 7 anos com escaldadura de 25% da superfície corporal será transferida para um centro de queimados a 3 horas de distância. A equipe a envolve em toalhas úmidas e frias para aliviar a dor. Durante a espera, a temperatura axilar cai para 34,8 °C.",
+  "pergunta": "Qual é a conduta adequada para o transporte?",
+  "opcoes": [
+   "Desbridar as bolhas e cobrir com curativo seco oclusivo",
+   "Retirar as toalhas úmidas e cobrir com curativo seco",
+   "Desbridar as bolhas e cobrir com curativo úmido estéril",
+   "Manter as toalhas úmidas e acrescentar analgesia para o trajeto"
+  ],
+  "correta": "B",
+  "pista": "Grande queimadura pediátrica com hipotermia.",
+  "conceito": "Crianças têm maior relação superfície/massa e predisposição à hipotermia. Evitar curativos úmidos em grandes queimaduras (> 20%). Se o paciente for transferido, não há necessidade de desbridar: envolver as áreas com curativo seco para prevenir hipotermia.",
+  "raciocinio": [
+   "Reconhecer a hipotermia.",
+   "Remover a causa: toalhas úmidas.",
+   "Cobrir com curativo seco, sem desbridar."
+  ],
+  "erros": {
+   "A": "O desbridamento não é necessário antes da transferência.",
+   "C": "Não se desbrida antes da transferência, e curativo úmido deve ser evitado.",
+   "D": "Curativos úmidos em grandes queimaduras causam hipotermia."
+  }
+ },
+ {
+  "assunto": "Cicatrização",
+  "caso": "Menino de 9 anos cai de bicicleta e tem duas lesões: uma escoriação superficial no joelho, restrita à epiderme, e uma laceração profunda na coxa que atinge a derme. Seis meses depois, o joelho está sem marcas e a coxa tem cicatriz linear firme.",
+  "pergunta": "Qual processo explica cada evolução?",
+  "opcoes": [
+   "Joelho: regeneração, com preservação funcional; coxa: cicatrização, com colágeno e maior força tênsil",
+   "Joelho e coxa: cicatrização, diferindo apenas no tempo de maturação do colágeno",
+   "Joelho: cicatrização, com colágeno e maior força tênsil; coxa: regeneração, com preservação funcional",
+   "Joelho: regeneração, com colágeno e maior força tênsil; coxa: cicatrização, com preservação funcional"
+  ],
+  "correta": "A",
+  "pista": "Lesão só epidérmica sem marca × lesão dérmica com cicatriz.",
+  "conceito": "Regeneração mantém a funcionalidade do órgão lesado (como fígado e epiderme), mas não confere resistência mecânica imediata. Cicatrização substitui o tecido lesado por colágeno, pode reduzir parte da função e oferece maior força tênsil.",
+  "raciocinio": [
+   "Identificar a profundidade de cada lesão.",
+   "Associar epiderme à regeneração.",
+   "Associar a lesão dérmica à cicatrização com colágeno."
+  ],
+  "erros": {
+   "B": "A epiderme regenera; os dois processos não produzem o mesmo tecido.",
+   "C": "Inverte os processos.",
+   "D": "Troca as características: colágeno e força tênsil são da cicatrização."
+  }
+ },
+ {
+  "assunto": "Cicatrização",
+  "caso": "Mulher de 44 anos, no 2º dia após colecistectomia aberta, apresenta leve hiperemia e edema restritos às bordas da incisão, sem secreção, afebril e com dor controlada. Pede antibiótico, temendo 'infecção'.",
+  "pergunta": "Qual é a interpretação mais adequada?",
+  "opcoes": [
+   "Falha da fase proliferativa, com deiscência iniciando nas bordas",
+   "Fase inflamatória esperada, que dura cerca de 4 dias",
+   "Fase de maturação precoce, com reorganização do colágeno nas bordas",
+   "Infecção invasiva da ferida, pela presença de hiperemia e edema nas bordas"
+  ],
+  "correta": "B",
+  "pista": "2º dia, sinais leves e restritos, sem secreção ou febre.",
+  "conceito": "A fase inflamatória ou exsudativa prepara e protege: hemostasia e migração de leucócitos dominam o início, com duração de cerca de 4 dias. A resposta inflamatória inicial prepara o caminho para o reparo.",
+  "raciocinio": [
+   "Situar o tempo: 2º dia.",
+   "Verificar sinais de alarme: ausentes.",
+   "Interpretar como fase inflamatória normal."
+  ],
+  "erros": {
+   "A": "Não há separação das bordas.",
+   "C": "A maturação começa por volta de 3 semanas.",
+   "D": "Não há secreção, febre nem sinais de lesão invasiva."
+  }
+ },
+ {
+  "assunto": "Cicatrização",
+  "caso": "Homem de 32 anos tem biópsia de ferida cirúrgica de 5 dias, feita por suspeita de lesão associada. O laudo descreve inflamação intensa, fibroblastos e abundante neoformação vascular, com cobertura epitelial presente, e questiona se o reparo está 'atrasado'.",
+  "pergunta": "Como interpretar o laudo?",
+  "opcoes": [
+   "Compatível com 14 a 30 dias, indicando aceleração",
+   "Compatível com a fase tardia, indicando maturação precoce",
+   "Compatível com as primeiras 24 horas, indicando atraso",
+   "Compatível com o período de 2 a 7 dias, sem atraso"
+  ],
+  "correta": "D",
+  "pista": "Achados histológicos em ferida de 5 dias.",
+  "conceito": "Cronologia: 24 h — coágulo, sem reação inflamatória visível; 24–48 h — epitélio mais espesso, coágulo e infiltrado; 2–7 dias — inflamação intensa, fibroblastos e abundante neoformação vascular, com cobertura epitelial; 14–30 dias — menos fibroblastos e inflamação, colágeno em evidência; fase tardia — tecido denso, menor rede capilar; maturação até 2 anos.",
+  "raciocinio": [
+   "Listar os achados do laudo.",
+   "Comparar com a cronologia normal.",
+   "Situar entre 2 e 7 dias: sem atraso."
+  ],
+  "erros": {
+   "A": "Entre 14 e 30 dias, fibroblastos e inflamação diminuem, com colágeno em evidência.",
+   "B": "Na fase tardia há tecido denso e menor rede capilar.",
+   "C": "Em 24 horas há coágulo, sem reação inflamatória visível."
+  }
+ },
+ {
+  "assunto": "Cicatrização",
+  "caso": "Paciente de 29 anos, 3 meses após tireoidectomia, está incomodada porque a cicatriz ainda está avermelhada e pede revisão cirúrgica 'para corrigir'. Não há sinais de excesso de tecido.",
+  "pergunta": "Qual é a orientação mais adequada?",
+  "opcoes": [
+   "A fase proliferativa termina aos 3 meses, quando a vermelhidão deveria ter desaparecido",
+   "A maturação termina em 30 dias, e a vermelhidão indica cicatriz patológica a corrigir",
+   "A fase inflamatória persiste por meses e explica a vermelhidão, que exige anti-inflamatório",
+   "A maturação continua por até 2 anos, com redução da vascularização e aumento da força tênsil"
+  ],
+  "correta": "D",
+  "pista": "Cicatriz de 3 meses, avermelhada, sem excesso.",
+  "conceito": "A maturação começa por volta de 3 semanas e pode se estender por até 2 anos: as fibras amadurecem, os feixes de colágeno se organizam, a força tênsil aumenta e a vascularização diminui. Na remodelação, capilares recém-formados regridem até a densidade vascular se aproximar do normal.",
+  "raciocinio": [
+   "Situar o tempo: 3 meses.",
+   "Lembrar a duração da maturação.",
+   "Explicar a regressão vascular esperada."
+  ],
+  "erros": {
+   "A": "A remodelação prossegue por meses a anos.",
+   "B": "A maturação é bem mais longa que 30 dias.",
+   "C": "A fase inflamatória dura cerca de 4 dias."
+  }
+ },
+ {
+  "assunto": "Cicatrização",
+  "caso": "Jogador de futebol de 22 anos, operado de hérnia inguinal há 4 semanas, quer voltar a treinos de força máxima, pois 'a cicatriz já fechou e está resistente como antes'.",
+  "pergunta": "Qual é a explicação correta sobre a resistência da cicatriz?",
+  "opcoes": [
+   "A força tênsil ainda aumenta na maturação, que dura até 2 anos",
+   "A força tênsil é máxima ao fim da fase inflamatória, por volta do 4º dia",
+   "A força tênsil não se altera após o fechamento epitelial da ferida",
+   "A força tênsil é máxima ao final da fase proliferativa, por volta da 3ª semana"
+  ],
+  "correta": "A",
+  "pista": "Ferida fechada há 4 semanas e demanda mecânica máxima.",
+  "conceito": "O colágeno é sintetizado e depois reorganizado em feixes; a força tênsil aumenta progressivamente durante a maturação, que começa por volta de 3 semanas e pode durar até 2 anos.",
+  "raciocinio": [
+   "Situar o tempo: início da maturação.",
+   "Lembrar o ganho progressivo de força tênsil.",
+   "Concluir que a resistência ainda não é plena."
+  ],
+  "erros": {
+   "B": "A fase inflamatória não confere resistência.",
+   "C": "O fechamento epitelial não encerra o ganho de resistência.",
+   "D": "A maturação apenas começa por volta de 3 semanas."
+  }
+ },
+ {
+  "assunto": "Cicatrização",
+  "caso": "Cozinheiro de 30 anos tem corte limpo, de bordas regulares, no antebraço, feito com faca há 2 horas. Não há perda de tecido nem sujidade, e as bordas se aproximam sem tensão.",
+  "pergunta": "Qual tipo de cicatrização se espera após a sutura?",
+  "opcoes": [
+   "Segunda intenção, com granulação abundante no leito",
+   "Primeira intenção, com pouca ou nenhuma granulação visível",
+   "Terceira intenção, com fechamento programado entre 3 e 7 dias",
+   "Segunda intenção, com fechamento programado entre 3 e 7 dias"
+  ],
+  "correta": "B",
+  "pista": "Ferida limpa, sem perda tecidual e bordas aproximáveis.",
+  "conceito": "Primeira intenção: bordas aproximadas e pequena necessidade de preenchimento; o leito é preenchido por sangue coagulado e fibrina, geralmente sem granulação visível, com cicatriz esteticamente aceitável. Perda mínima, bordas justapostas e ausência de contaminação são o cenário favorável.",
+  "raciocinio": [
+   "Avaliar perda e contaminação: ausentes.",
+   "Verificar a aproximação das bordas.",
+   "Concluir: primeira intenção."
+  ],
+  "erros": {
+   "A": "Não há grande perda tecidual.",
+   "C": "Não há infecção que justifique adiar o fechamento.",
+   "D": "Mistura conceitos e não se aplica a corte limpo."
+  }
+ },
+ {
+  "assunto": "Cicatrização",
+  "caso": "Homem de 41 anos tem abscesso glúteo volumoso drenado, com cavidade ampla deixada aberta e tamponada. Nas semanas seguintes, o fundo da cavidade se preenche por tecido vermelho e granuloso até fechar.",
+  "pergunta": "Qual tipo de cicatrização ocorreu e qual sua característica?",
+  "opcoes": [
+   "Terceira intenção, com sutura após controle do processo infeccioso",
+   "Segunda intenção, sem formação de tecido de granulação visível",
+   "Primeira intenção, com fechamento por aproximação das bordas",
+   "Segunda intenção, com grande quantidade de tecido de granulação"
+  ],
+  "correta": "D",
+  "pista": "Cavidade infectada deixada aberta até fechar sozinha.",
+  "conceito": "Segunda intenção: grandes perdas teciduais, desbridamentos extensos e infecções; a grande área torna o reparo mais complexo e produz grande quantidade de tecido de granulação.",
+  "raciocinio": [
+   "Verificar se houve sutura: não.",
+   "Identificar o preenchimento por granulação.",
+   "Concluir: segunda intenção."
+  ],
+  "erros": {
+   "A": "Não houve sutura tardia; o fechamento foi espontâneo.",
+   "B": "Na segunda intenção a granulação é abundante.",
+   "C": "As bordas não foram aproximadas."
+  }
+ },
+ {
+  "assunto": "Cicatrização",
+  "caso": "Homem de 25 anos operado por apendicite perfurada teve a pele deixada aberta. No 2º dia, a ferida ainda drena secreção purulenta; o residente propõe suturá-la 'para acelerar a recuperação'.",
+  "pergunta": "Qual é a conduta adequada?",
+  "opcoes": [
+   "Manter aberta definitivamente, para fechar apenas por segunda intenção",
+   "Manter aberta até controlar a infecção e suturar entre 3 e 7 dias",
+   "Suturar agora, pois o fechamento precoce reduz o risco de infecção",
+   "Suturar agora e manter antibiótico, evoluindo por terceira intenção"
+  ],
+  "correta": "B",
+  "pista": "2º dia, ainda com secreção purulenta.",
+  "conceito": "Terceira intenção: a ferida permanece aberta para granular enquanto o processo infeccioso termina; a sutura ocorre em média entre 3 e 7 dias, e depois a evolução segue como primeira intenção.",
+  "raciocinio": [
+   "Avaliar o controle da infecção: ausente.",
+   "Adiar a sutura.",
+   "Fechar após o controle, entre 3 e 7 dias."
+  ],
+  "erros": {
+   "A": "O plano de terceira intenção prevê fechamento após o controle.",
+   "C": "Com secreção purulenta, a infecção ainda não foi controlada.",
+   "D": "A terceira intenção pressupõe fechar só após controlar a infecção."
+  }
+ },
+ {
+  "assunto": "Cicatrização",
+  "caso": "Trabalhador rural de 38 anos tem ferida na perna após trauma com arame, com hematoma volumoso, fragmentos de terra e bordas necróticas. O interno quer suturar imediatamente 'para fechar logo'.",
+  "pergunta": "Qual conduta atua sobre os obstáculos locais antes do fechamento?",
+  "opcoes": [
+   "Sutura imediata sobre o hematoma, para comprimi-lo e evitar contaminação",
+   "Limpeza, retirada de corpo estranho, drenagem, desbridamento e hemostasia",
+   "Imobilização rígida e curativo oclusivo, sem abordagem do leito da ferida",
+   "Antibiótico sistêmico isolado, mantendo hematoma e bordas necróticas"
+  ],
+  "correta": "B",
+  "pista": "Hematoma, corpo estranho e necrose.",
+  "conceito": "Obstáculos no leito: carga da lesão (dimensão, áreas pouco vascularizadas); contaminação (infecção, corpos estranhos, secreções); tecido inviável (necrose, hematomas, edema); preparo e mecânica (movimentação precoce; limpeza, antissepsia, desbridamento e hemostasia).",
+  "raciocinio": [
+   "Listar os obstáculos presentes.",
+   "Associar cada um à sua correção.",
+   "Preparar o leito antes de fechar."
+  ],
+  "erros": {
+   "A": "Fechar sobre hematoma e corpo estranho mantém os obstáculos.",
+   "C": "Não aborda contaminação, hematoma e necrose.",
+   "D": "Antibiótico não remove corpo estranho nem tecido inviável."
+  }
+ },
+ {
+  "assunto": "Cicatrização",
+  "caso": "Criança de 6 anos teve laceração na testa suturada com fio multifilamentar, pontos muito apertados e plano de retirada em 14 dias. No 5º dia, as bordas estão escurecidas e há pequenas áreas de necrose ao redor dos pontos.",
+  "pergunta": "Qual falha técnica explica o quadro e qual seria o correto?",
+  "opcoes": [
+   "Isquemia das bordas por pontos apertados; fio monofilamentar, sem isquemia e retirada precoce",
+   "Infecção pelo fio monofilamentar; fio multifilamentar, pontos firmes e retirada tardia",
+   "Isquemia das bordas por pontos apertados; fio multifilamentar, sem isquemia e retirada tardia",
+   "Tensão insuficiente dos pontos; fio monofilamentar, pontos mais apertados e retirada precoce"
+  ],
+  "correta": "A",
+  "pista": "Necrose das bordas junto a pontos apertados.",
+  "conceito": "A meta técnica é a aposição correta da derme com mínimo dano e sem isquemia: preferir fios monofilamentares, escolher o tipo de sutura adequado, planejar retirada precoce dos pontos e evitar isquemia das bordas.",
+  "raciocinio": [
+   "Associar necrose a pontos apertados.",
+   "Reconhecer a isquemia das bordas.",
+   "Corrigir: monofilamentar, sem tensão excessiva e retirada precoce."
+  ],
+  "erros": {
+   "B": "O fio usado foi multifilamentar, e a recomendação é o monofilamentar.",
+   "C": "Acerta a causa, mas mantém o fio e a retirada inadequados.",
+   "D": "O problema foi excesso de tensão, não falta."
+  }
+ },
+ {
+  "assunto": "Cicatrização",
+  "caso": "Após uma cirurgia de parede abdominal de 5 horas, com uso de eletrocautério em todas as incisões, dissecção ampla de planos desnecessários e afastadores sob tensão máxima contínua, o paciente evolui com infecção da ferida.",
+  "pergunta": "Qual conjunto de práticas técnicas teria reduzido esse risco?",
+  "opcoes": [
+   "Incisões com eletrocautério, dissecção só quando necessária e afastadores sob tensão constante",
+   "Incisões com bisturi, dissecção ampla preventiva e afastadores sob tensão constante",
+   "Incisões com eletrocautério, dissecção ampla preventiva e menor tensão nos afastadores",
+   "Incisões com bisturi, dissecção só quando necessária e menor tensão nos afastadores"
+  ],
+  "correta": "D",
+  "pista": "Três práticas agressivas combinadas.",
+  "conceito": "Técnica cirúrgica adequada, manipulação cuidadosa, incisões com bisturi, dissecção apenas quando necessária e menor tensão nos afastadores levam a menor destruição celular, menor risco de infecção e melhor cicatrização.",
+  "raciocinio": [
+   "Identificar as três práticas agressivas.",
+   "Substituir cada uma pelo princípio correto.",
+   "Relacionar com menor destruição celular e infecção."
+  ],
+  "erros": {
+   "A": "Mantém o eletrocautério nas incisões e a tensão excessiva.",
+   "B": "Mantém a dissecção ampla e a tensão excessiva.",
+   "C": "Mantém o eletrocautério nas incisões e a dissecção ampla."
+  }
+ },
+ {
+  "assunto": "Cicatrização",
+  "caso": "Ferida pós-operatória de 3 semanas não progride. A biópsia mostra predomínio persistente de macrófagos pró-inflamatórios liberando citocinas e poucos macrófagos com fenótipo reparador.",
+  "pergunta": "Qual falha explica a estagnação?",
+  "opcoes": [
+   "Excesso de M2, com proliferação exagerada de fibroblastos e fechamento precoce",
+   "Falha na transição de M1 para M2, sem estímulo proliferativo",
+   "Excesso de M1 na fase de maturação, com aceleração da remodelação",
+   "Falha na transição de M2 para M1, sem remoção de células em apoptose"
+  ],
+  "correta": "B",
+  "pista": "Predomínio persistente de macrófagos pró-inflamatórios.",
+  "conceito": "Os macrófagos M1 (pró-inflamatórios) liberam citocinas, recrutam leucócitos e removem células em apoptose. Depois passam a M2 (reparadores), que estimulam queratinócitos, fibroblastos e angiogênese e promovem a transição para a fase proliferativa.",
+  "raciocinio": [
+   "Identificar o fenótipo predominante: M1.",
+   "Lembrar a transição esperada: M1 para M2.",
+   "Concluir: sem M2, não há estímulo proliferativo."
+  ],
+  "erros": {
+   "A": "Há poucos M2, e a ferida não fecha.",
+   "C": "O predomínio de M1 impede a progressão, não acelera o reparo.",
+   "D": "A transição fisiológica é de M1 para M2."
+  }
+ },
+ {
+  "assunto": "Cicatrização",
+  "caso": "Paciente de 35 anos tem duas queimaduras. No antebraço, lesão de espessura parcial superficial que se epiteliza em poucos dias a partir de pequenas ilhas no leito. Na mão, lesão de espessura total que não se epiteliza espontaneamente.",
+  "pergunta": "Qual explicação é correta?",
+  "opcoes": [
+   "No antebraço, anexos e camada basal preservados; na mão, perda dos anexos",
+   "No antebraço, regeneração por fibroblastos; na mão, falta de coágulo de fibrina",
+   "No antebraço, epitelização só pelas bordas; na mão, excesso de anexos cutâneos",
+   "No antebraço, contração por miofibroblastos; na mão, excesso de colágeno na derme"
+  ],
+  "correta": "A",
+  "pista": "Epitelização a partir de ilhas × ausência de epitelização.",
+  "conceito": "Os anexos cutâneos são importantes na recuperação da cobertura epitelial. As células-tronco epidérmicas ficam na protuberância dos folículos pilosos e na camada basal e originam os queratinócitos que re-epitelizam. Queimaduras abaixo dos anexos perdem o potencial de cicatrização primária.",
+  "raciocinio": [
+   "Relacionar as ilhas epiteliais aos anexos.",
+   "Relacionar a espessura total à perda dos anexos.",
+   "Explicar a diferença de evolução."
+  ],
+  "erros": {
+   "B": "Fibroblastos formam matriz, não epitélio.",
+   "C": "As ilhas indicam epitelização a partir dos anexos, não só das bordas.",
+   "D": "A contração tem pequena participação no fechamento em humanos."
+  }
+ },
+ {
+  "assunto": "Cicatrização",
+  "caso": "Ferida aberta no dorso de um paciente de 50 anos reduz de área ao longo das semanas. O residente afirma que a contração é o principal mecanismo de fechamento, 'como nos estudos em ratos'.",
+  "pergunta": "Qual análise é correta?",
+  "opcoes": [
+   "A contração, mediada por miofibroblastos, contribui pouco para o fechamento em humanos",
+   "A contração, mediada por miofibroblastos, é o principal mecanismo de fechamento em humanos",
+   "A contração, mediada por neutrófilos, contribui pouco para o fechamento em humanos",
+   "A contração, mediada por queratinócitos, é o principal mecanismo de fechamento em humanos"
+  ],
+  "correta": "A",
+  "pista": "Extrapolação de modelo animal.",
+  "conceito": "A ferida sofre contração ao longo do processo, mediada por miofibroblastos (fibroblastos contráteis). Em humanos, contribui em pequena percentagem para o fechamento, ao contrário dos roedores. Quando exagerada, a contração leva a contraturas.",
+  "raciocinio": [
+   "Identificar a célula contrátil.",
+   "Comparar humanos e roedores.",
+   "Concluir: contribuição pequena em humanos."
+  ],
+  "erros": {
+   "B": "Nos humanos, a contribuição é pequena, ao contrário dos roedores.",
+   "C": "Neutrófilos não medeiam a contração.",
+   "D": "Queratinócitos atuam na epitelização, e a contração não é o principal mecanismo."
+  }
+ },
+ {
+  "assunto": "Cicatrização",
+  "caso": "Ferida cirúrgica infectada deixada aberta, no 10º dia, mostra leito vermelho, granuloso e brilhante que sangra facilmente ao toque. A família pergunta se é 'carne podre'.",
+  "pergunta": "O que esse tecido representa?",
+  "opcoes": [
+   "Granulação da fase proliferativa: neovasos, exsudato inflamatório e colágeno",
+   "Tecido necrótico da fase inflamatória, formado por fibrina, restos celulares e bactérias",
+   "Tecido de maturação, formado por colágeno organizado em feixes e rede capilar reduzida",
+   "Tecido de granulação da fase inflamatória, formado apenas por coágulo e neutrófilos"
+  ],
+  "correta": "A",
+  "pista": "Leito vermelho, granuloso e muito vascularizado.",
+  "conceito": "Na fase proliferativa, angiogênese, fibroblastos e síntese de colágeno formam o tecido de granulação: neovasos, exsudato inflamatório e colágeno. Ele preenche o defeito e acompanha a contração da ferida.",
+  "raciocinio": [
+   "Descrever o aspecto do leito.",
+   "Relacionar à angiogênese intensa.",
+   "Identificar o tecido de granulação."
+  ],
+  "erros": {
+   "B": "Tecido necrótico não é vermelho, granuloso e vascularizado.",
+   "C": "A maturação tem rede capilar reduzida, não um leito que sangra fácil.",
+   "D": "O coágulo com neutrófilos é o cenário inicial, não a granulação."
+  }
+ },
+ {
+  "assunto": "Cicatrização",
+  "caso": "Mulher de 81 anos, desnutrida (albumina baixa), em uso crônico de prednisona por doença autoimune e de anti-inflamatório para artrose, será submetida a laparotomia.",
+  "pergunta": "Qual análise sobre o risco de cicatrização é mais adequada?",
+  "opcoes": [
+   "O risco decorre apenas da idade avançada, pois os fármacos não interferem no reparo",
+   "Há vários fatores sistêmicos somados: idade, nutrição e fármacos como corticoide e anti-inflamatório",
+   "O risco decorre apenas da desnutrição, pois corticoides aceleram o reparo ao reduzir a inflamação",
+   "Não há risco sistêmico relevante, pois o reparo depende apenas de fatores locais da ferida"
+  ],
+  "correta": "B",
+  "pista": "Idade, desnutrição, corticoide e anti-inflamatório.",
+  "conceito": "Fatores sistêmicos: nutrição, circulação, metabolismo e hormônios, terapia medicamentosa e faixa etária avançada. Deficiência proteica e de vitamina C, ferro, cobre e zinco, além de anti-inflamatórios, corticoides e citotóxicos, comprometem o reparo.",
+  "raciocinio": [
+   "Listar os fatores sistêmicos da paciente.",
+   "Reconhecer a interferência dos fármacos.",
+   "Somar os riscos."
+  ],
+  "erros": {
+   "A": "Anti-inflamatórios e corticoides também comprometem o reparo.",
+   "C": "Corticoides estão entre os fármacos que alteram a cicatrização.",
+   "D": "Fatores sistêmicos modulam a resposta do paciente."
+  }
+ },
+ {
+  "assunto": "Cicatrização",
+  "caso": "Homem de 28 anos com hemofilia A (deficiência de fator VIII) é submetido a exérese de lipoma. Evolui com hematoma volumoso na ferida e atraso importante da cicatrização.",
+  "pergunta": "Qual mecanismo integra a doença e a falha do reparo?",
+  "opcoes": [
+   "Falha isolada da maturação, sem relação com a fase de hemostasia",
+   "Excesso de colágeno induzido pelo fator VIII, que enrijece e retarda a ferida",
+   "Hiperatividade de macrófagos reparadores, que degradam a matriz provisória",
+   "Falha da hemostasia, com hematoma como obstáculo local ao reparo"
+  ],
+  "correta": "D",
+  "pista": "Coagulopatia com hematoma na ferida.",
+  "conceito": "A hemostasia é a primeira fase: vasoconstrição, coágulo de fibrina e liberação de fatores (TGF-β, PDGF, FGF, EGF). Hemofilia e deficiência de fator VIII estão entre as condições que comprometem o reparo, e o hematoma é obstáculo local (tecido inviável).",
+  "raciocinio": [
+   "Relacionar a hemofilia à hemostasia.",
+   "Reconhecer o hematoma como obstáculo local.",
+   "Integrar os dois mecanismos."
+  ],
+  "erros": {
+   "A": "A falha começa na hemostasia, com hematoma no leito.",
+   "B": "O fator VIII não induz colágeno.",
+   "C": "Não é o mecanismo descrito."
+  }
+ },
+ {
+  "assunto": "Cicatrização",
+  "caso": "Mulher de 26 anos com síndrome de Ehlers-Danlos é submetida a laparotomia e evolui com cicatriz frágil e alargada, com abertura parcial da ferida após esforço.",
+  "pergunta": "Qual é o grupo de fatores envolvido?",
+  "opcoes": [
+   "Contratura por contração exagerada da ferida abdominal",
+   "Excesso de reparo, com cicatriz queloidiana por predisposição étnica",
+   "Doença sistêmica listada entre as condições que comprometem o reparo",
+   "Fator local de contaminação por corpo estranho na ferida"
+  ],
+  "correta": "C",
+  "pista": "Doença do tecido conjuntivo com cicatriz frágil.",
+  "conceito": "Entre as condições citadas que comprometem o reparo estão deficiências nutricionais, escorbuto, hemofilia, deficiência de fator VIII, síndrome de Ehlers-Danlos, AR, LES, PAN e TAO. Reparo insuficiente pode evoluir com deiscência ou ulceração.",
+  "raciocinio": [
+   "Identificar a doença de base.",
+   "Classificá-la como fator sistêmico.",
+   "Relacionar com reparo insuficiente."
+  ],
+  "erros": {
+   "A": "Contratura deforma por retração; aqui há fragilidade e abertura.",
+   "B": "O quadro é de reparo insuficiente, não excessivo.",
+   "D": "Não há contaminação nem corpo estranho no caso."
+  }
+ },
+ {
+  "assunto": "Cicatrização patológica",
+  "caso": "Homem de 66 anos, obeso e tabagista com DPOC, no 6º dia de laparotomia mediana, tem crises intensas de tosse. Após um acesso, nota saída de líquido serossanguinolento e separação das bordas da ferida.",
+  "pergunta": "Qual falha do reparo ocorreu e quais fatores do caso se associam a ela?",
+  "opcoes": [
+   "Ulceração, associada à doença vascular periférica e ao tabagismo",
+   "Contratura, associada à contração exagerada e à tensão das bordas na obesidade",
+   "Deiscência, associada à predisposição étnica e ao excesso de colágeno",
+   "Deiscência, por pressão abdominal aumentada e bordas sob tensão"
+  ],
+  "correta": "D",
+  "pista": "Separação das bordas após tosse, em paciente obeso.",
+  "conceito": "Deiscência e ulceração representam reparo insuficiente. A deiscência é comum após cirurgia abdominal e associada ao aumento da pressão abdominal. Na obesidade, o aumento da tensão nas bordas contribui para a deiscência, reduzindo microperfusão e oxigênio.",
+  "raciocinio": [
+   "Identificar a separação das bordas: deiscência.",
+   "Reconhecer o aumento da pressão abdominal pela tosse.",
+   "Somar a tensão das bordas na obesidade."
+  ],
+  "erros": {
+   "A": "Ulceração é descrita nos membros inferiores com doença vascular e diabetes.",
+   "B": "Contratura é retração com deformidade, não separação.",
+   "C": "Predisposição étnica e excesso de colágeno são do reparo excessivo."
+  }
+ },
+ {
+  "assunto": "Cicatrização patológica",
+  "caso": "Mulher de 70 anos, diabética e com doença arterial periférica aterosclerótica, tem úlcera na perna há 6 meses. A tensão transcutânea de oxigênio no leito é de 10 mmHg.",
+  "pergunta": "Qual é a interpretação mais adequada?",
+  "opcoes": [
+   "Tensão de oxigênio normal; a falha decorre apenas do diabetes",
+   "Reparo insuficiente com ferida aguda; hipóxia transitória estimula o reparo",
+   "Reparo insuficiente com ferida isquêmica crônica; hipóxia prolongada impede o reparo",
+   "Reparo excessivo com cicatriz hipertrófica; hipóxia transitória estimula o reparo"
+  ],
+  "correta": "C",
+  "pista": "Úlcera de 6 meses com TcPO₂ de 10 mmHg em diabética com doença arterial.",
+  "conceito": "A ulceração nos membros inferiores é descrita no contexto de doença vascular aterosclerótica e diabetes. Feridas crônicas são isquêmicas, com TcPO₂ de 5 a 20 mmHg (controle 30 a 50). A hipóxia transitória estimula o reparo; a prolongada cronifica a ferida.",
+  "raciocinio": [
+   "Classificar a ferida: crônica.",
+   "Interpretar a TcPO₂: isquemia.",
+   "Relacionar a hipóxia prolongada à falha do reparo."
+  ],
+  "erros": {
+   "A": "10 mmHg está bem abaixo dos 30 a 50 mmHg do tecido normal.",
+   "B": "Seis meses caracterizam ferida crônica.",
+   "D": "Não há excesso de tecido, e a hipóxia é prolongada."
+  }
+ },
+ {
+  "assunto": "Cicatrização patológica",
+  "caso": "Criança de 8 anos, com queimadura cicatrizada na palma da mão há 6 meses, evolui com retração que mantém os dedos fletidos e impede a abertura da mão.",
+  "pergunta": "Qual falha do reparo explica o quadro?",
+  "opcoes": [
+   "Cicatriz hipertrófica, com excesso de colágeno sem deformidade funcional",
+   "Deiscência, com separação das bordas por aumento de pressão local",
+   "Desmoide, com proliferação exuberante de fibroblastos sem retração",
+   "Contratura, com contração exagerada que deforma os tecidos"
+  ],
+  "correta": "D",
+  "pista": "Retração na palma com limitação funcional.",
+  "conceito": "Na contratura, o processo de contração torna-se exagerado e deforma a ferida e os tecidos circundantes. Locais frequentes: palmas das mãos, plantas dos pés e face anterior do tórax. Queimaduras também têm contraturas como complicação tardia.",
+  "raciocinio": [
+   "Identificar a retração deformante.",
+   "Classificar como contratura.",
+   "Reconhecer a palma como local típico."
+  ],
+  "erros": {
+   "A": "O quadro é de retração com deformidade funcional.",
+   "B": "Não há separação de bordas.",
+   "C": "O achado central é a retração deformante."
+  }
+ },
+ {
+  "assunto": "Cicatrização patológica",
+  "caso": "Jovem de 19 anos, de etnia com predisposição conhecida, desenvolve cicatriz exuberante, elevada e crescente no lóbulo da orelha após perfuração para brinco. A lesão está íntegra e epitelizada.",
+  "pergunta": "Qual é a hipótese e quais opções conservadoras são descritas?",
+  "opcoes": [
+   "Queloide; malha compressiva, silicone sobre cicatriz íntegra e gel antiproliferativo",
+   "Contratura; malha compressiva, placa de silicone sobre cicatriz íntegra e gel antiproliferativo",
+   "Cicatriz queloidiana; placa de silicone sobre ferida aberta e vitamina E tópica comprovada",
+   "Desmoide; malha compressiva, placa de silicone sobre ferida aberta e gel antiproliferativo"
+  ],
+  "correta": "A",
+  "pista": "Cicatriz exuberante com predisposição étnica.",
+  "conceito": "Excesso de reparo: cicatriz hipertrófica (excesso de colágeno), cicatriz queloidiana (predisposição em algumas etnias) e desmoides (proliferação exuberante de fibroblastos). Tratamento: malha elástica compressiva, placa de silicone sobre cicatriz íntegra e pomada ou gel antiproliferativo.",
+  "raciocinio": [
+   "Associar a predisposição étnica ao queloide.",
+   "Verificar a pele: íntegra, permitindo silicone.",
+   "Listar as opções conservadoras."
+  ],
+  "erros": {
+   "B": "Não há retração deformante.",
+   "C": "O silicone é aplicado sobre cicatriz íntegra, e a vitamina E tópica não tem benefício comprovado.",
+   "D": "A predisposição étnica aponta para queloide, e o silicone exige pele íntegra."
+  }
+ },
+ {
+  "assunto": "Cicatrização patológica",
+  "caso": "Úlcera venosa crônica há 14 meses não progride, apesar de curativos adequados. A análise do fluido mostra IL-1 e TNF-α elevados, atividade proteolítica alta e níveis baixos dos inibidores naturais de protease.",
+  "pergunta": "Qual mecanismo explica a cronificação?",
+  "opcoes": [
+   "Inflamação prolongada com MMPs baixas e inibidores altos, bloqueando a epitelização",
+   "Inflamação resolvida com MMPs altas, que aceleram a formação de matriz",
+   "Ausência de inflamação com inibidores baixos, que acumulam fatores de crescimento",
+   "Inflamação prolongada com MMPs altas e inibidores baixos, degradando matriz e fatores"
+  ],
+  "correta": "D",
+  "pista": "Citocinas elevadas e desequilíbrio proteolítico.",
+  "conceito": "Na ferida crônica, a remoção microbiana falha, a inflamação se prolonga (IL-1, TNF-α), as MMPs aumentam e os inibidores de protease diminuem, degradando rapidamente matriz e fatores de crescimento. A inflamação deixa de ser etapa de limpeza e vira mecanismo de cronificação.",
+  "raciocinio": [
+   "Reconhecer a inflamação persistente.",
+   "Identificar MMPs altas com inibidores baixos.",
+   "Concluir: degradação de matriz e fatores."
+  ],
+  "erros": {
+   "A": "Inverte o desequilíbrio proteolítico.",
+   "B": "A inflamação persiste, e MMPs altas destroem a matriz.",
+   "C": "Há inflamação intensa, e os fatores são degradados."
+  }
+ },
+ {
+  "assunto": "Cicatrização patológica",
+  "caso": "Dois pacientes internados têm úlceras sacrais. No paciente A, há bactérias em replicação sem nenhuma resposta tecidual. No paciente B, há replicação com início de resposta inflamatória local, sem lesão invasiva do hospedeiro.",
+  "pergunta": "Como se classificam as feridas A e B?",
+  "opcoes": [
+   "A: contaminação; B: colonização da ferida",
+   "A: infecção local; B: infecção invasiva do hospedeiro",
+   "A: colonização; B: infecção local",
+   "A: colonização; B: infecção invasiva do hospedeiro"
+  ],
+  "correta": "C",
+  "pista": "Replicação sem resposta (A) × replicação com resposta local (B).",
+  "conceito": "Contaminação: organismos não replicantes. Colonização: replicação sem dano tecidual. Infecção local ou colonização crítica: replicação com início de resposta nos tecidos locais. Infecção invasiva: replicação com lesão do hospedeiro.",
+  "raciocinio": [
+   "Verificar a replicação em ambos: presente.",
+   "Avaliar a resposta local: ausente em A, presente em B.",
+   "Classificar sem invasão em nenhum dos dois."
+  ],
+  "erros": {
+   "A": "Contaminação é presença de organismos não replicantes; em A há replicação.",
+   "B": "A não tem resposta tecidual, e B não tem invasão.",
+   "D": "B não tem lesão invasiva do hospedeiro."
+  }
+ },
+ {
+  "assunto": "Cicatrização patológica",
+  "caso": "Diabético de 60 anos com úlcera no pé há 8 meses já usou três esquemas de antibiótico sistêmico, sem melhora. A análise mostra comunidade bacteriana agregada em matriz de polissacarídeo, com Pseudomonas aeruginosa.",
+  "pergunta": "Qual mecanismo explica a falha terapêutica?",
+  "opcoes": [
+   "Colonização simples, que não responde a antibióticos por ausência de replicação",
+   "Contaminação por organismos não replicantes, insensíveis a antibióticos",
+   "Biofilme, microambiente protegido contra antibióticos e fagocitose",
+   "Excesso de neutrófilos funcionantes, que inativam o antibiótico no leito"
+  ],
+  "correta": "C",
+  "pista": "Comunidade agregada em matriz polissacarídica.",
+  "conceito": "Em feridas infectadas, bactérias formam biofilmes: comunidades agregadas numa matriz de polissacarídeo extracelular produzida por elas. Biofilmes maduros criam microambientes protegidos, mais resistentes a antibióticos convencionais e à fagocitose de PMN. P. aeruginosa, S. aureus e estreptococos β-hemolíticos são destacados.",
+  "raciocinio": [
+   "Reconhecer a estrutura do biofilme.",
+   "Relacionar à proteção contra antibióticos e fagocitose.",
+   "Explicar a falha dos esquemas."
+  ],
+  "erros": {
+   "A": "Na colonização há replicação; não explica a resistência.",
+   "B": "Não se trata de contaminação por organismos não replicantes.",
+   "D": "No diabetes os neutrófilos estão disfuncionais."
+  }
+ },
+ {
+  "assunto": "Cicatrização patológica",
+  "caso": "Mulher de 72 anos tem úlcera isquêmica crônica na perna, sem possibilidade de revascularização. A equipe discute alternativas para superar a hipóxia tecidual.",
+  "pergunta": "Qual opção é descrita e qual sua principal limitação?",
+  "opcoes": [
+   "Oxigenoterapia hiperbárica, que é a primeira escolha universal, sem limitações de acesso",
+   "Hipóxia induzida prolongada, que estimula o reparo, mas tem disponibilidade limitada",
+   "Oxigenoterapia hiperbárica, eficaz em feridas isquêmicas, mas de acesso limitado",
+   "Vitamina E tópica, que supera a hipóxia, mas tem benefício comprovado apenas em animais"
+  ],
+  "correta": "C",
+  "pista": "Ferida isquêmica sem revascularização.",
+  "conceito": "O nível adequado de oxigênio é crucial para a cicatrização. A oxigenoterapia hiperbárica pode superar, em algumas situações, a influência da hipóxia tecidual e ser eficaz em feridas isquêmicas, mas sua disponibilidade é limitada.",
+  "raciocinio": [
+   "Identificar o problema: hipóxia tecidual.",
+   "Lembrar a opção capaz de superá-la.",
+   "Reconhecer a limitação de acesso."
+  ],
+  "erros": {
+   "A": "A disponibilidade é limitada.",
+   "B": "A hipóxia prolongada cronifica a ferida.",
+   "D": "A vitamina E tópica não tem benefício comprovado em ensaios e não trata a hipóxia."
+  }
+ },
+ {
+  "assunto": "Cicatrização patológica",
+  "caso": "Em uma ferida cirúrgica recente, há hipóxia temporária no leito. Em outro paciente, uma úlcera de pé tem hipóxia persistente há meses. O residente afirma que 'a hipóxia é igualmente prejudicial nos dois casos'.",
+  "pergunta": "Qual análise é correta?",
+  "opcoes": [
+   "Ambas estimulam o reparo por PDGF, TGF-β e VEGF, sem diferença entre elas",
+   "Ambas são prejudiciais e devem ser corrigidas com oxigênio imediatamente",
+   "A transitória sinaliza o reparo (PDGF, TGF-β, VEGF); a prolongada cronifica",
+   "A hipóxia transitória cronifica a ferida; a prolongada estimula PDGF, TGF-β e VEGF"
+  ],
+  "correta": "C",
+  "pista": "Hipóxia aguda e temporária × hipóxia crônica.",
+  "conceito": "A hipóxia transitória é sinal fisiológico: estimula PDGF, TGF-β, VEGF, TNF-α e endotelina-1, favorecendo proliferação, migração e angiogênese. A hipóxia prolongada não sustenta o reparo e favorece a ferida crônica. O oxigênio é necessário para ATP, defesa (superóxido dos PMN) e reconstrução.",
+  "raciocinio": [
+   "Separar hipóxia transitória de prolongada.",
+   "Associar a transitória à sinalização.",
+   "Associar a prolongada à cronificação."
+  ],
+  "erros": {
+   "A": "A hipóxia prolongada não sustenta o reparo.",
+   "B": "A hipóxia inicial tem papel de sinal fisiológico.",
+   "D": "Inverte os efeitos."
+  }
+ },
+ {
+  "assunto": "Cicatrização patológica",
+  "caso": "Homem de 79 anos, saudável e ativo, submetido a herniorrafia, pergunta se a idade fará a cicatriz 'ficar pior'. O cirurgião também discute estratégias para otimizar a recuperação.",
+  "pergunta": "Qual orientação é a mais adequada?",
+  "opcoes": [
+   "A idade piora a qualidade do reparo mesmo em idosos saudáveis; o repouso absoluto melhora a cicatrização",
+   "A idade acelera o reparo pela maior agregação plaquetária; o exercício é indiferente",
+   "A idade não interfere no reparo; o exercício retarda a cicatrização ao aumentar a inflamação",
+   "A idade tende a atrasar o reparo sem piorar a qualidade; o exercício foi associado a melhor cicatrização"
+  ],
+  "correta": "D",
+  "pista": "Idoso saudável e estratégia de recuperação.",
+  "conceito": "Em adultos saudáveis, o envelhecimento atrasa a cicatrização sem deficiência real de qualidade, com infiltração atrasada de macrófagos e linfócitos, macrófagos disfuncionais e menos fatores de crescimento. O exercício foi associado a melhor cicatrização em idosos, com redução de citocinas pró-inflamatórias.",
+  "raciocinio": [
+   "Distinguir atraso de pior qualidade.",
+   "Reconhecer as alterações da idade.",
+   "Orientar o exercício como fator favorável."
+  ],
+  "erros": {
+   "A": "Em adultos saudáveis, o efeito é atraso, e o exercício tem benefício descrito.",
+   "B": "Há atraso global, e o exercício foi associado a melhora.",
+   "C": "O envelhecimento altera todas as fases, e o exercício reduziu citocinas pró-inflamatórias."
+  }
+ },
+ {
+  "assunto": "Cicatrização patológica",
+  "caso": "Diabético de 58 anos tem úlcera plantar crônica com infecções de repetição. A investigação mostra neutrófilos com quimiotaxia e fagocitose reduzidas, e atividade de MMP no fluido muito superior à de feridas agudas.",
+  "pergunta": "Qual interpretação é a correta?",
+  "opcoes": [
+   "Defesa antimicrobiana deficiente e proteólise excessiva, com MMPs cerca de 60 vezes maiores",
+   "Defesa antimicrobiana aumentada e proteólise reduzida, com MMPs cerca de 60 vezes menores",
+   "Defesa antimicrobiana normal e proteólise excessiva, com MMPs cerca de 6 vezes maiores",
+   "Defesa antimicrobiana deficiente e proteólise normal, com MMPs semelhantes às de feridas agudas"
+  ],
+  "correta": "A",
+  "pista": "Neutrófilos disfuncionais e MMPs muito elevadas.",
+  "conceito": "No diabetes, neutrófilos têm quimiotaxia e fagocitose reduzidas, com maior suscetibilidade à infecção, e há inflamação prolongada, hipóxia, ROS, AGEs/RAGE e MMPs elevadas: no fluido de feridas crônicas, a atividade é quase 60 vezes superior à de feridas agudas, destruindo tecido e inibindo o reparo.",
+  "raciocinio": [
+   "Interpretar a função dos neutrófilos.",
+   "Interpretar a atividade de MMP.",
+   "Relacionar com infecção e falha do reparo."
+  ],
+  "erros": {
+   "B": "Inverte ambos os achados.",
+   "C": "A defesa está reduzida e a atividade é cerca de 60 vezes maior.",
+   "D": "A atividade de MMP está muito elevada."
+  }
+ },
+ {
+  "assunto": "Cicatrização patológica",
+  "caso": "Diabético de 64 anos com neuropatia periférica grave desenvolve úlcera indolor no hálux, com pouca resposta inflamatória local.",
+  "pergunta": "Qual mecanismo neuroimune contribui para a úlcera?",
+  "opcoes": [
+   "Inflamação neurogênica excessiva, com menos neuropeptídeos como substância P e menor infiltração de leucócitos",
+   "Inflamação neurogênica deficiente, com menos neuropeptídeos como substância P e menor infiltração de leucócitos",
+   "Inflamação neurogênica excessiva, com mais neuropeptídeos como substância P e maior infiltração de leucócitos",
+   "Inflamação neurogênica deficiente, com mais neuropeptídeos como substância P e maior infiltração de leucócitos"
+  ],
+  "correta": "B",
+  "pista": "Úlcera indolor com pouca resposta inflamatória.",
+  "conceito": "Nervos sensoriais liberam neuropeptídeos (NGF, neurotensina, substância P e CGRP) que promovem quimiotaxia, fatores de crescimento e proliferação. A pele desnervada exibe menor infiltração de leucócitos. Na neuropatia diabética, a inflamação neurogênica deficiente aumenta a suscetibilidade à úlcera do pé.",
+  "raciocinio": [
+   "Relacionar a neuropatia à menor liberação de neuropeptídeos.",
+   "Reconhecer a menor infiltração de leucócitos.",
+   "Explicar a suscetibilidade à úlcera."
+  ],
+  "erros": {
+   "A": "Mistura inflamação excessiva com redução de mediadores.",
+   "C": "Na neuropatia a resposta está reduzida, não excessiva.",
+   "D": "A pele desnervada tem menor infiltração de leucócitos e menos neuropeptídeos."
+  }
+ },
+ {
+  "assunto": "Cicatrização patológica",
+  "caso": "Em feridas de diabéticos, observa-se formação de novos vasos muito menor que em não diabéticos. Um estudo propõe usar células progenitoras endoteliais do próprio paciente como terapia.",
+  "pergunta": "Qual análise sobre esse contexto é correta?",
+  "opcoes": [
+   "O VEGF está normal, e as progenitoras de diabéticos têm menor função, sem relevância para a angiogênese",
+   "O VEGF está reduzido, mas as progenitoras de diabéticos têm função preservada, favorecendo o uso autólogo",
+   "VEGF reduzido e progenitoras com menor proliferação e aderência, limitando o uso autólogo",
+   "O VEGF está aumentado, e as progenitoras de diabéticos têm maior proliferação e aderência, favorecendo o uso autólogo"
+  ],
+  "correta": "C",
+  "pista": "Angiogênese reduzida e proposta de terapia autóloga.",
+  "conceito": "No diabetes, o VEGF diminui nas feridas, e há disfunção na mobilização e migração das EPCs, que apresentam menor proliferação, aderência e incorporação vascular; por isso, EPCs autólogas podem ter uso limitado. A restauração experimental de VEGF melhora os resultados.",
+  "raciocinio": [
+   "Reconhecer a angiogênese reduzida.",
+   "Relacionar ao VEGF diminuído.",
+   "Avaliar a limitação das progenitoras autólogas."
+  ],
+  "erros": {
+   "A": "O VEGF está reduzido, e as progenitoras são centrais na neovascularização.",
+   "B": "As progenitoras de diabéticos têm função reduzida.",
+   "D": "Inverte os achados."
+  }
+ },
+ {
+  "assunto": "Cicatrização patológica",
+  "caso": "Mulher de 55 anos, com IMC 48, acamada após fratura, desenvolve úlcera por pressão sacral e maceração com infecção nas dobras abdominais.",
+  "pergunta": "Quais fatores da obesidade explicam essas lesões?",
+  "opcoes": [
+   "Menor perfusão, dificuldade de reposicionamento, umidade das dobras e atrito pele a pele",
+   "Menor perfusão, facilidade de reposicionamento, pele seca nas dobras e ausência de atrito",
+   "Maior perfusão, facilidade de reposicionamento, umidade das dobras e atrito pele a pele",
+   "Maior perfusão, dificuldade de reposicionamento, pele seca nas dobras e atrito pele a pele"
+  ],
+  "correta": "A",
+  "pista": "Úlcera por pressão e lesões nas dobras.",
+  "conceito": "Na obesidade, a vascularidade reduzida aumenta a suscetibilidade à pressão; a dificuldade de reposicionamento amplia a exposição; dobras cutâneas úmidas favorecem microrganismos e ruptura da pele; o atrito pele a pele favorece úlceras. As adipocinas modulam negativamente a imunidade.",
+  "raciocinio": [
+   "Identificar o fator vascular.",
+   "Considerar a mobilidade reduzida.",
+   "Somar umidade e atrito das dobras."
+  ],
+  "erros": {
+   "B": "O reposicionamento é difícil, e as dobras são úmidas e sujeitas a atrito.",
+   "C": "Na obesidade a perfusão está reduzida e o reposicionamento é difícil.",
+   "D": "A perfusão está reduzida, e as dobras são úmidas."
+  }
+ },
+ {
+  "assunto": "Cicatrização patológica",
+  "caso": "Homem de 57 anos, etilista, com dieta sem frutas e verduras, apresenta sangramento gengival, petéquias e ferida cirúrgica que não fecha após 5 semanas.",
+  "pergunta": "Qual deficiência explica o quadro e por qual mecanismo?",
+  "opcoes": [
+   "Vitamina E, cofator da hidroxilação de prolina e lisina, com fragilidade capilar",
+   "Vitamina C, cofator da hidroxilação de prolina e lisina, com fragilidade capilar",
+   "Vitamina A, cofator da ligação cruzada do colágeno, com fragilidade capilar",
+   "Vitamina C, cofator da ligação cruzada do colágeno, sem alteração capilar"
+  ],
+  "correta": "B",
+  "pista": "Etilismo, dieta pobre, sangramento gengival e petéquias.",
+  "conceito": "A síntese de colágeno requer hidroxilação de lisina e prolina, com cofatores ferro ferroso e vitamina C. A deficiência de vitamina C reduz a síntese de colágeno e a proliferação de fibroblastos, diminui a angiogênese, aumenta a fragilidade capilar e reduz a resposta imune. O cobre participa da ligação cruzada.",
+  "raciocinio": [
+   "Suspeitar de escorbuto.",
+   "Relacionar vitamina C à hidroxilação do colágeno.",
+   "Explicar a fragilidade capilar."
+  ],
+  "erros": {
+   "A": "A vitamina E é antioxidante e não é o cofator da hidroxilação.",
+   "C": "Não é o cofator da ligação cruzada, e o quadro é de escorbuto.",
+   "D": "A ligação cruzada depende do cobre, e há fragilidade capilar no escorbuto."
+  }
+ },
+ {
+  "assunto": "Cicatrização patológica",
+  "caso": "Mulher de 45 anos, 2 anos após cirurgia bariátrica, tem deficiências confirmadas de ferro, zinco e cobre e ferida crônica na perna.",
+  "pergunta": "Qual associação entre micronutriente e função no reparo está correta?",
+  "opcoes": [
+   "Ferro: ligação cruzada do colágeno; zinco: hidroxilação de prolina e lisina; cobre: polimerases de RNA e DNA",
+   "Ferro: hidroxilação de prolina e lisina; zinco: ligação cruzada do colágeno; cobre: polimerases de RNA e DNA",
+   "Ferro: polimerases de RNA e DNA; zinco: ligação cruzada do colágeno; cobre: hidroxilação de prolina e lisina",
+   "Ferro: hidroxilação de prolina e lisina; zinco: polimerases de RNA e DNA; cobre: ligação cruzada do colágeno"
+  ],
+  "correta": "D",
+  "pista": "Três micronutrientes deficientes.",
+  "conceito": "O magnésio é cofator de enzimas da síntese proteica e de colágeno; o cobre, da citocromo-oxidase, da superóxido dismutase e da ligação cruzada do colágeno; o zinco, das polimerases de RNA e DNA (sua deficiência prejudica muito a cicatrização); o ferro, da hidroxilação de prolina e lisina (deficiência grave reduz a produção de colágeno).",
+  "raciocinio": [
+   "Associar o ferro à hidroxilação.",
+   "Associar o zinco às polimerases.",
+   "Associar o cobre à ligação cruzada."
+  ],
+  "erros": {
+   "A": "Troca todas as funções.",
+   "B": "Acerta o ferro, mas troca zinco e cobre.",
+   "C": "Troca todas as funções."
+  }
+ },
+ {
+  "assunto": "Cicatrização patológica",
+  "caso": "Idosa de 86 anos, acamada, com úlcera por pressão crônica e perda de peso, é avaliada pela nutrição. A família quer creme de vitamina E sobre a úlcera e cápsulas de ômega-3.",
+  "pergunta": "Qual estratégia tem melhor respaldo nos materiais?",
+  "opcoes": [
+   "Restrição proteica, para reduzir o edema e a exsudação da úlcera",
+   "Ômega-3 isolado em alta dose, pelo efeito comprovado na cicatrização",
+   "Suplemento hipercalórico com proteína, arginina, vitaminas C e E e zinco",
+   "Vitamina E tópica isolada, pelo benefício comprovado em ensaios clínicos"
+  ],
+  "correta": "C",
+  "pista": "Úlcera por pressão com desnutrição e propostas sem evidência.",
+  "conceito": "Um suplemento de alta energia enriquecido com proteína, arginina, vitamina C, vitamina E e zinco melhorou a cicatrização de úlceras por pressão. A arginina é precursora da prolina (colágeno); a glutamina é fonte energética de células proliferativas e cai após cirurgia, trauma e sepse.",
+  "raciocinio": [
+   "Reconhecer desnutrição com úlcera crônica.",
+   "Separar as intervenções com e sem evidência.",
+   "Indicar a suplementação combinada descrita."
+  ],
+  "erros": {
+   "A": "A deficiência proteica prejudica a cicatrização.",
+   "B": "O efeito do ômega-3 na cicatrização é inconclusivo.",
+   "D": "A vitamina E tópica não teve benefício comprovado em ensaios."
+  }
+ },
+ {
+  "assunto": "Cicatrização",
+  "caso": "Paciente de 61 anos, em tratamento oncológico com anticorpo neutralizante do VEGF, é submetido a drenagem de abscesso com ferida deixada aberta. Após 3 semanas, o leito permanece pálido, com pouca granulação e sem progressão.",
+  "pergunta": "Qual mecanismo explica a falha do reparo?",
+  "opcoes": [
+   "Excesso de VEGF, com angiogênese exagerada e sangramento que impede a granulação",
+   "Bloqueio do VEGF, prejudicando a angiogênese e a formação do tecido de granulação",
+   "Bloqueio do VEGF, acelerando a maturação e a regressão precoce dos capilares",
+   "Ausência de efeito do VEGF, sendo a falha explicada apenas pela infecção local"
+  ],
+  "correta": "B",
+  "pista": "Anticorpo anti-VEGF e leito pálido, sem granulação.",
+  "conceito": "O VEGF tem papel importante no crescimento vascular. O bloqueio do VEGF com anticorpos neutralizantes impede a reparação dos tecidos, e sua restauração melhora o reparo. O tecido de granulação depende de neovasos, exsudato inflamatório e colágeno.",
+  "raciocinio": [
+   "Identificar o fármaco: anti-VEGF.",
+   "Relacionar o VEGF à angiogênese.",
+   "Explicar a falta de granulação."
+  ],
+  "erros": {
+   "A": "O fármaco neutraliza o VEGF, não o aumenta.",
+   "C": "O bloqueio impede a formação de vasos; não acelera a maturação.",
+   "D": "O VEGF é fundamental para a reparação."
+  }
+ },
+ {
+  "assunto": "Cicatrização patológica",
+  "caso": "Mulher de 42 anos, com IMC 41, deseja cirurgia eletiva de parede abdominal e pergunta o que pode fazer antes para reduzir complicações da ferida.",
+  "pergunta": "Qual orientação tem respaldo nos materiais?",
+  "opcoes": [
+   "Ganho de massa gorda, que aumenta a perfusão do tecido subcutâneo",
+   "Repouso prolongado no leito, que reduz a tensão sobre as bordas da ferida",
+   "Suplementação isolada de ômega-3, com efeito comprovado na cicatrização",
+   "Perda de peso prévia, que melhora alterações imunes da obesidade"
+  ],
+  "correta": "D",
+  "pista": "Obesa em cirurgia eletiva, buscando reduzir riscos.",
+  "conceito": "Obesos têm mais infecção de sítio cirúrgico, deiscência, hematoma e seroma, por menor perfusão, maior tensão nas bordas e adipocinas que prejudicam a imunidade. Muitas alterações relacionadas à obesidade e seu efeito no sistema imune melhoram com a perda de peso.",
+  "raciocinio": [
+   "Listar os riscos da obesidade na ferida.",
+   "Identificar o fator modificável antes da cirurgia.",
+   "Orientar perda de peso prévia."
+  ],
+  "erros": {
+   "A": "O tecido adiposo tem perfusão relativa menor.",
+   "B": "A imobilidade aumenta o risco de lesões por pressão.",
+   "C": "O efeito do ômega-3 é inconclusivo."
+  }
+ }
+];
+
+/* =====================================================================
+   MOTOR (não precisa editar daqui para baixo)
+   ===================================================================== */
+const LETTERS = ["A","B","C","D","E"];
+const BANK_KEY = "simulado-cirurgia-banco";
+
+function toIdx(v){
+  if(typeof v==="number" && Number.isInteger(v)) return v;
+  if(typeof v==="string"){
+    const t=v.trim().toUpperCase();
+    if(/^[A-E]$/.test(t)) return LETTERS.indexOf(t);
+    if(/^\d+$/.test(t)) return +t;
+  }
+  return -1;
+}
+function normalizar(lista){
+  if(!Array.isArray(lista) || !lista.length) throw new Error("Nenhuma questão encontrada no arquivo.");
+  return lista.map((q,k)=>{
+    const n=k+1;
+    if(!q || typeof q!=="object") throw new Error(`Questão ${n}: formato inválido.`);
+    const opcoes = q.opcoes || q.alternativas;
+    if(!Array.isArray(opcoes) || opcoes.length<2 || opcoes.length>5) throw new Error(`Questão ${n}: use de 2 a 5 alternativas em "opcoes".`);
+    const correta = toIdx(q.correta ?? q.gabarito);
+    if(correta<0 || correta>=opcoes.length) throw new Error(`Questão ${n}: "correta" deve ser uma letra de A a ${LETTERS[opcoes.length-1]}.`);
+    if(!q.caso && !q.pergunta) throw new Error(`Questão ${n}: falta "caso" ou "pergunta".`);
+    const erros={};
+    if(q.erros && typeof q.erros==="object"){
+      for(const [key,val] of Object.entries(q.erros)){
+        const i=toIdx(key);
+        if(i>=0 && i<opcoes.length && i!==correta && val) erros[i]=String(val);
+      }
+    }
+    return {
+      assunto:String(q.assunto || q.tema || "Geral"),
+      caso:String(q.caso||""), pergunta:String(q.pergunta||""),
+      opcoes:opcoes.map(String), correta,
+      pista:String(q.pista||""), conceito:String(q.conceito||""), explicacao:String(q.explicacao||""),
+      raciocinio: Array.isArray(q.raciocinio) ? q.raciocinio.map(String) : (q.raciocinio ? [String(q.raciocinio)] : []),
+      erros, figura:String(q.figura||""), imagem:String(q.imagem||""), legenda:String(q.legenda||"")
+    };
+  });
+}
+function hashStr(str){ let h=2166136261; for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0).toString(36); }
+
+let CFG = Object.assign({}, CONFIG), BANCO, PERSONALIZADO = false, ERRO_BANCO = "";
+try{
+  const raw = localStorage.getItem(BANK_KEY);
+  if(raw){ const d=JSON.parse(raw); BANCO=normalizar(d.questoes); CFG=Object.assign({},CONFIG,d.config||{}); PERSONALIZADO=true; }
+}catch(e){ BANCO=null; PERSONALIZADO=false; }
+if(!BANCO){
+  try{ BANCO = normalizar(BANCO_PADRAO); }
+  catch(e){ ERRO_BANCO = e.message; BANCO = normalizar([{assunto:"Erro",pergunta:"O banco de questões padrão tem um erro: "+e.message,opcoes:["Ok","Ok"],correta:"A"}]); }
+}
+const BANK_HASH = hashStr(JSON.stringify(BANCO));
+
+/* ordem: embaralhada de forma estável, evitando o mesmo assunto em sequência */
+function ordenar(){
+  const idx = BANCO.map((_,i)=>i);
+  if(CFG.embaralhar===false) return idx;
+  let seed = parseInt(BANK_HASH,36) || 1;
+  const rnd = ()=>{ seed=(Math.imul(seed,1103515245)+12345)>>>0; return (seed>>>1)/0x7fffffff; };
+  for(let tent=0; tent<60; tent++){
+    const pool=idx.slice(), out=[];
+    while(pool.length){
+      const prev = out.length ? BANCO[out[out.length-1]].assunto : null;
+      let c = pool.filter(i=>BANCO[i].assunto!==prev);
+      if(!c.length) c = pool;
+      const pick = c[Math.floor(rnd()*c.length)];
+      out.push(pick); pool.splice(pool.indexOf(pick),1);
+    }
+    const ok = out.every((x,k)=>k===0 || BANCO[x].assunto!==BANCO[out[k-1]].assunto);
+    if(ok || tent===59) return out;
+  }
+  return idx;
+}
+const QUESTIONS = ordenar().map(i=>BANCO[i]);
+
+/* =====================================================================
+   ESTADO E PERSISTÊNCIA
+   ===================================================================== */
+const KEY = "simulado-cirurgia-" + BANK_HASH;
+const ALL = QUESTIONS.map((_,i)=>i);
+
+function freshState(){ return { set:ALL.slice(), answers:{}, pos:0, view:"start", mode:"full", mapFilter:"all" }; }
+let S = load();
+
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(!raw) return freshState();
+    const d = JSON.parse(raw);
+    if(!d || !Array.isArray(d.set) || !d.set.length || d.set.some(i=>typeof i!=="number"||i<0||i>=QUESTIONS.length)) return freshState();
+    const st = Object.assign(freshState(), d);
+    st.pos = Math.min(Math.max(0, st.pos|0), st.set.length-1);
+    return st;
+  }catch(e){ return freshState(); }
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+
+const isAnswered = id => Object.prototype.hasOwnProperty.call(S.answers, id);
+const isRight = id => isAnswered(id) && S.answers[id] === QUESTIONS[id].correta;
+function tally(){
+  let ok=0, err=0, blank=0;
+  S.set.forEach(id=>{ if(!isAnswered(id)) blank++; else if(isRight(id)) ok++; else err++; });
+  return {ok,err,blank,total:S.set.length};
+}
+
+/* =====================================================================
+   RENDER
+   ===================================================================== */
+const $ = s => document.querySelector(s);
+const vStart=$("#vStart"), vQuiz=$("#vQuiz"), vResult=$("#vResult"), topbar=$("#topbar");
+
+function render(){
+  vStart.hidden = S.view!=="start";
+  vQuiz.hidden = S.view!=="quiz";
+  vResult.hidden = S.view!=="result";
+  topbar.hidden = S.view==="start";
+  if(S.view==="start") renderStart();
+  if(S.view==="quiz") renderQuiz();
+  if(S.view==="result") renderResult();
+  renderChrome();
+  save();
+}
+
+function renderStart(){
+  const answered = Object.keys(S.answers).length;
+  $("#sTotal").textContent = QUESTIONS.length;
+  $("#sDone").textContent = answered;
+  const hasProgress = answered>0 || S.pos>0 || S.mode!=="full";
+  $("#btnStart").textContent = hasProgress ? "Continuar" : "Iniciar";
+  $("#btnFresh").hidden = !hasProgress;
+  const setTxt=(sel,txt)=>{ const el=$(sel); el.textContent=txt||""; el.hidden=!txt; };
+  setTxt("#cArea", CFG.area); setTxt("#cTitulo", CFG.titulo || "Simulado");
+  setTxt("#cAutor", CFG.autor ? "por "+CFG.autor : ""); setTxt("#cDesc", CFG.descricao);
+  document.title = CFG.titulo || "Simulado";
+  const ns=[...new Set(QUESTIONS.map(q=>q.opcoes.length))];
+  $("#sAlt").textContent = ns.length===1 ? ns[0] : Math.min(...ns)+"–"+Math.max(...ns);
+  const maxN=Math.max(...ns);
+  $("#keysAns").innerHTML = LETTERS.slice(0,maxN).map(l=>`<kbd>${l}</kbd>`).join(" ")+" responder";
+  $("#bankLabel").textContent = PERSONALIZADO ? "Banco carregado de arquivo." : "Banco padrão do arquivo.";
+  $("#btnDefault").hidden = !PERSONALIZADO;
+}
+
+function renderChrome(){
+  const t = tally();
+  const pad = n => String(n).padStart(2,"0");
+  $("#counter").innerHTML = S.view==="result"
+    ? `Resultado <span class="mode">${t.ok}/${t.total}</span>`
+    : `<b>${pad(S.pos+1)}</b> / ${pad(S.set.length)}${S.mode==="retry"?'<span class="mode">refazendo erradas</span>':''}`;
+  $("#btnFinish").textContent = S.view==="result" ? "Resultado" : "Finalizar";
+  // barra segmentada
+  const prog = $("#progress");
+  prog.innerHTML = S.set.map((id,p)=>{
+    const cls = ["seg"];
+    if(isAnswered(id)) cls.push(isRight(id)?"ok":"err");
+    if(p===S.pos && S.view==="quiz") cls.push("cur");
+    const st = !isAnswered(id)?"em branco":(isRight(id)?"certa":"errada");
+    return `<button type="button" class="${cls.join(" ")}" data-p="${p}" aria-label="Questão ${p+1}, ${st}"></button>`;
+  }).join("");
+  renderMap();
+}
+
+function renderMap(){
+  const f = S.mapFilter;
+  document.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed", String(c.dataset.f===f)));
+  const items = S.set.map((id,p)=>({id,p})).filter(({id})=>{
+    if(f==="err") return isAnswered(id) && !isRight(id);
+    if(f==="blank") return !isAnswered(id);
+    return true;
+  });
+  $("#cells").innerHTML = items.length
+    ? items.map(({id,p})=>{
+        const cls=["cell"];
+        if(isAnswered(id)) cls.push(isRight(id)?"ok":"err");
+        if(p===S.pos && S.view==="quiz") cls.push("cur");
+        return `<button type="button" class="${cls.join(" ")}" data-p="${p}">${String(p+1).padStart(2,"0")}</button>`;
+      }).join("")
+    : `<div class="map-empty" style="grid-column:1/-1">${f==="err"?"Nenhuma questão errada.":"Nenhuma questão em branco."}</div>`;
+}
+
+function renderQuiz(){
+  const id = S.set[S.pos];
+  const q = QUESTIONS[id];
+  const ans = isAnswered(id) ? S.answers[id] : null;
+  const done = ans!==null;
+  const last = S.pos===S.set.length-1;
+
+  const opts = q.opcoes.map((txt,i)=>{
+    let cls="opt";
+    if(done){
+      if(i===q.correta) cls+=" right";
+      else if(i===ans) cls+=" wrong";
+      else cls+=" dim";
+    }
+    return `<button type="button" class="${cls}" data-i="${i}" ${done?"disabled":""}><span class="key">${LETTERS[i]}</span><span>${txt}</span></button>`;
+  }).join("");
+
+  let fb="";
+  if(done){
+    const ok = ans===q.correta;
+    const alts = Object.keys(q.erros).map(Number).sort((a,b)=>a-b)
+      .map(i=>`<li><span class="k">${LETTERS[i]}</span><span>${q.erros[i]}</span></li>`).join("");
+    fb = `<div class="fb ${ok?"is-ok":"is-err"}" role="status">
+      <div class="fb-head"><span class="dot"></span>${ok?"Resposta correta":"Resposta incorreta"}<span class="gab">Gabarito: ${LETTERS[q.correta]}</span></div>
+      <div class="fb-body">
+        ${q.pista?`<div class="fb-sec"><h3>Pista do caso</h3><p>${q.pista}</p></div>`:""}
+        ${q.raciocinio && q.raciocinio.length?`<div class="fb-sec"><h3>Raciocínio esperado</h3><ol class="fb-steps">${q.raciocinio.map(r=>`<li>${r}</li>`).join("")}</ol></div>`:""}
+        ${q.conceito?`<div class="fb-sec"><h3>Conceito testado</h3><p>${q.conceito}</p></div>`:""}
+        ${q.explicacao?`<div class="fb-sec"><h3>Explicação</h3><p>${q.explicacao}</p></div>`:""}
+        ${alts?`<div class="fb-sec"><h3>Análise das alternativas</h3><ul class="fb-alts">${alts}</ul></div>`:""}
+      </div></div>`;
+  }
+
+  const cap = q.legenda ? `<figcaption>${q.legenda}</figcaption>` : "";
+  const fig = q.figura ? `<figure class="figure">${q.figura}${cap}</figure>`
+            : q.imagem ? `<figure class="figure"><img src="${q.imagem}" alt="${q.legenda||"Imagem da questão"}">${cap}</figure>` : "";
+
+  vQuiz.innerHTML = `
+    <div class="q-meta"><span class="q-num">Questão ${String(S.pos+1).padStart(2,"0")}</span></div>
+    ${q.caso?`<p class="q-case">${q.caso}</p>`:""}
+    ${fig}
+    <p class="q-ask">${q.pergunta}</p>
+    <div class="opts" role="group" aria-label="Alternativas">${opts}</div>
+    ${fb}
+    <div class="nav">
+      <button type="button" class="btn" id="bPrev" ${S.pos===0?"disabled":""}>Anterior</button>
+      <span class="spacer"></span>
+      <span class="hint">${done?"<kbd>Enter</kbd> para avançar":`<kbd>A</kbd>–<kbd>${LETTERS[q.opcoes.length-1]}</kbd> para responder`}</span>
+      <button type="button" class="btn primary" id="bNext">${last?"Ver resultado":"Próxima"}</button>
+    </div>`;
+}
+
+function renderResult(){
+  const t = tally();
+  const pct = t.total ? Math.round(t.ok/t.total*100) : 0;
+  let msg;
+  if(t.blank===t.total) msg = "Nenhuma questão foi respondida ainda.";
+  else if(pct>=80) msg = "Desempenho sólido. Revise as erradas para fechar as lacunas restantes.";
+  else if(pct>=60) msg = "Bom caminho. Refaça as erradas e releia a análise das alternativas de cada uma.";
+  else msg = "Vale revisar cada questão com calma: a pista do caso mostra onde o raciocínio deveria ancorar.";
+  const wrongCount = t.err;
+  vResult.innerHTML = `
+    <h2>${S.mode==="retry"?"Resultado — refazendo erradas":"Resultado do simulado"}</h2>
+    <div class="score">
+      <div class="pct">${pct}<small>%</small></div>
+      <div class="breakdown">
+        <div><div class="n ok">${t.ok}</div><div class="l">acertos</div></div>
+        <div><div class="n err">${t.err}</div><div class="l">erros</div></div>
+        <div><div class="n blank">${t.blank}</div><div class="l">em branco</div></div>
+      </div>
+    </div>
+    <p class="summary">${msg}</p>
+    <div class="actions">
+      <button type="button" class="btn primary" id="rReview">Revisar questões</button>
+      <button type="button" class="btn" id="rRetry" ${wrongCount?"":"disabled"}>Refazer erradas${wrongCount?` (${wrongCount})`:""}</button>
+      <button type="button" class="btn" id="rHome">Início</button>
+    </div>
+    ${topicReport()}
+    <div class="result-grid">${S.set.map((id,p)=>{
+      const cls=["cell"]; if(isAnswered(id)) cls.push(isRight(id)?"ok":"err");
+      return `<button type="button" class="${cls.join(" ")}" data-p="${p}" aria-label="Revisar questão ${p+1}">${String(p+1).padStart(2,"0")}</button>`;
+    }).join("")}</div>`;
+}
+
+function topicReport(){
+  const g={};
+  S.set.forEach(id=>{ const t=QUESTIONS[id].assunto; g[t]=g[t]||{ok:0,n:0}; g[t].n++; if(isRight(id)) g[t].ok++; });
+  const rows=Object.keys(g).map(t=>({t,ok:g[t].ok,n:g[t].n,r:g[t].ok/g[t].n}))
+    .sort((a,b)=>a.r-b.r||a.t.localeCompare(b.t,"pt-BR"));
+  const weak=rows.filter(x=>x.r<0.5).map(x=>x.t);
+  const tip = weak.length ? `Priorize a revisão de: ${weak.join(", ")}.` : "Nenhum assunto abaixo de 50% de acerto.";
+  return `<div class="topics"><h3>Desempenho por assunto</h3><p class="topics-tip">${tip}</p><ul>${rows.map(x=>{
+    const cls = x.r>=0.75?"good":(x.r>=0.5?"mid":"bad");
+    return `<li class="${cls}"><span class="tn">${x.t}</span><span class="tbar"><i style="width:${Math.round(x.r*100)}%"></i></span><span class="tv">acertou ${x.ok} de ${x.n}</span></li>`;
+  }).join("")}</ul></div>`;
+}
+
+/* =====================================================================
+   AÇÕES
+   ===================================================================== */
+function go(p){
+  if(p<0||p>=S.set.length) return;
+  S.pos=p; S.view="quiz"; closeMap(); render();
+  window.scrollTo({top:0,behavior:"auto"});
+}
+function answer(i){
+  const id=S.set[S.pos];
+  if(S.view!=="quiz"||isAnswered(id)||i<0||i>=QUESTIONS[id].opcoes.length) return;
+  S.answers[id]=i; render();
+  const fb=document.querySelector(".fb");
+  if(fb) fb.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"nearest"});
+}
+function next(){
+  if(S.pos<S.set.length-1) go(S.pos+1);
+  else finish();
+}
+function finish(){
+  const t=tally();
+  if(S.view==="result") return;
+  if(t.blank>0){
+    confirmBox("Finalizar simulado?", `Há ${t.blank} ${t.blank===1?"questão":"questões"} em branco. Elas serão contadas como não respondidas.`, "Finalizar", ()=>{ S.view="result"; closeMap(); render(); window.scrollTo(0,0); });
+  } else { S.view="result"; closeMap(); render(); window.scrollTo(0,0); }
+}
+function retryWrong(){
+  const wrong=S.set.filter(id=>isAnswered(id)&&!isRight(id));
+  if(!wrong.length) return;
+  wrong.forEach(id=>delete S.answers[id]);
+  S.set=wrong; S.pos=0; S.mode="retry"; S.view="quiz"; S.mapFilter="all";
+  render(); window.scrollTo(0,0);
+}
+function resetAll(){
+  confirmBox("Reiniciar simulado?", "Todas as respostas serão apagadas e o simulado volta para a questão 1.", "Reiniciar", ()=>{
+    S=freshState(); S.view="quiz"; render(); window.scrollTo(0,0);
+  });
+}
+
+/* ---------- mapa ---------- */
+const mapEl=$("#map"), mapBtn=$("#btnMap");
+function openMap(){ mapEl.hidden=false; mapBtn.setAttribute("aria-expanded","true"); renderMap(); }
+function closeMap(){ mapEl.hidden=true; mapBtn.setAttribute("aria-expanded","false"); }
+mapBtn.addEventListener("click",e=>{ e.stopPropagation(); mapEl.hidden?openMap():closeMap(); });
+mapEl.addEventListener("click",e=>{
+  e.stopPropagation();
+  const chip=e.target.closest(".chip");
+  if(chip){ S.mapFilter=chip.dataset.f; renderMap(); save(); return; }
+  const cell=e.target.closest(".cell");
+  if(cell) go(+cell.dataset.p);
+});
+document.addEventListener("click",e=>{ if(!mapEl.hidden && !mapEl.contains(e.target)) closeMap(); });
+
+/* ---------- modal ---------- */
+const modal=$("#modal"); let modalCb=null, lastFocus=null;
+function alertBox(title,text){ confirmBox(title,text,"Ok",null); $("#mCancel").hidden=true; }
+function confirmBox(title,text,okLabel,cb){
+  $("#mCancel").hidden=false;
+  $("#mTitle").textContent=title; $("#mText").textContent=text; $("#mOk").textContent=okLabel;
+  modalCb=cb; lastFocus=document.activeElement; modal.hidden=false; $("#mOk").focus();
+}
+function closeModal(run){
+  modal.hidden=true; const cb=modalCb; modalCb=null;
+  if(run&&cb) cb(); else if(lastFocus) lastFocus.focus();
+}
+$("#mOk").addEventListener("click",()=>closeModal(true));
+$("#mCancel").addEventListener("click",()=>closeModal(false));
+modal.addEventListener("click",e=>{ if(e.target===modal) closeModal(false); });
+
+/* ---------- botões fixos ---------- */
+$("#btnStart").addEventListener("click",()=>{ S.view="quiz"; render(); window.scrollTo(0,0); });
+$("#btnFresh").addEventListener("click",()=>{
+  confirmBox("Começar do zero?","As respostas salvas serão apagadas.","Começar",()=>{ S=freshState(); S.view="quiz"; render(); window.scrollTo(0,0); });
+});
+$("#btnHome").addEventListener("click",()=>{ closeMap(); S.view="start"; render(); window.scrollTo(0,0); });
+$("#btnReset").addEventListener("click",()=>{ closeMap(); resetAll(); });
+$("#btnFinish").addEventListener("click",()=>{ closeMap(); finish(); });
+$("#progress").addEventListener("click",e=>{ const b=e.target.closest(".seg"); if(b) go(+b.dataset.p); });
+
+vQuiz.addEventListener("click",e=>{
+  const o=e.target.closest(".opt"); if(o){ answer(+o.dataset.i); return; }
+  if(e.target.closest("#bPrev")) go(S.pos-1);
+  if(e.target.closest("#bNext")) next();
+});
+vResult.addEventListener("click",e=>{
+  if(e.target.closest("#rReview")) go(0);
+  else if(e.target.closest("#rRetry")) retryWrong();
+  else if(e.target.closest("#rHome")){ S.view="start"; render(); window.scrollTo(0,0); }
+  else { const c=e.target.closest(".cell"); if(c) go(+c.dataset.p); }
+});
+
+/* ---------- teclado ---------- */
+document.addEventListener("keydown",e=>{
+  if(e.metaKey||e.ctrlKey||e.altKey) return;
+  if(!modal.hidden){
+    if(e.key==="Escape"){ e.preventDefault(); closeModal(false); }
+    return;
+  }
+  if(e.key==="Escape" && !mapEl.hidden){ closeMap(); mapBtn.focus(); return; }
+  if(S.view==="start"){
+    if(e.key==="Enter" && document.activeElement===document.body){ e.preventDefault(); $("#btnStart").click(); }
+    return;
+  }
+  if(S.view!=="quiz") return;
+  const k=e.key.toLowerCase();
+  const idx="abcde".indexOf(k);
+  if(idx>-1 && k.length===1){ e.preventDefault(); answer(idx); return; }
+  if(e.key==="Enter"){
+    const a=document.activeElement;
+    if(a && a!==document.body && a.tagName==="BUTTON" && !a.classList.contains("opt")) return; // deixa o botão focado agir
+    e.preventDefault(); next(); return;
+  }
+  if(e.key==="ArrowRight"){ e.preventDefault(); go(S.pos+1); }
+  if(e.key==="ArrowLeft"){ e.preventDefault(); go(S.pos-1); }
+});
+
+
+/* ---------- banco de questões: carregar arquivo / modelo ---------- */
+$("#btnLoad").addEventListener("click",()=>$("#fileInput").click());
+$("#fileInput").addEventListener("change",e=>{
+  const f=e.target.files && e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const d=JSON.parse(r.result);
+      const questoes = Array.isArray(d) ? d : d.questoes;
+      const cfg = Array.isArray(d) ? {} : (d.config||{});
+      const norm = normalizar(questoes);
+      localStorage.setItem(BANK_KEY, JSON.stringify({config:cfg, questoes:norm.map(q=>Object.assign({},q,{correta:LETTERS[q.correta], erros:Object.fromEntries(Object.entries(q.erros).map(([k,v])=>[LETTERS[k],v]))}))}));
+      location.reload();
+    }catch(err){
+      alertBox("Não foi possível carregar o arquivo", err instanceof SyntaxError ? "O arquivo não é um JSON válido. Confira vírgulas, aspas e colchetes." : err.message);
+    }
+    e.target.value="";
+  };
+  r.readAsText(f,"utf-8");
+});
+$("#btnDefault").addEventListener("click",()=>{
+  confirmBox("Voltar ao banco padrão?","O banco carregado de arquivo será removido deste navegador.","Voltar",()=>{
+    try{ localStorage.removeItem(BANK_KEY); }catch(e){} location.reload();
+  });
+});
+$("#btnModel").addEventListener("click",()=>{
+  const modelo={config:CONFIG, questoes:BANCO_PADRAO};
+  const blob=new Blob([JSON.stringify(modelo,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="modelo_questoes.json";
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+});
+if(ERRO_BANCO) setTimeout(()=>alertBox("Erro no banco padrão", ERRO_BANCO),0);
+
+render();
+</script>
+</body>
+</html>
